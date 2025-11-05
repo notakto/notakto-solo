@@ -12,21 +12,6 @@ import (
 	"github.com/lib/pq"
 )
 
-const createInitialSessionState = `-- name: CreateInitialSessionState :exec
-INSERT INTO sessionstate (session_id, boards)
-VALUES ($1, $2)
-`
-
-type CreateInitialSessionStateParams struct {
-	SessionID string  `json:"session_id"`
-	Boards    []int32 `json:"boards"`
-}
-
-func (q *Queries) CreateInitialSessionState(ctx context.Context, arg CreateInitialSessionStateParams) error {
-	_, err := q.exec(ctx, q.createInitialSessionStateStmt, createInitialSessionState, arg.SessionID, pq.Array(arg.Boards))
-	return err
-}
-
 const createSession = `-- name: CreateSession :exec
 INSERT INTO session (session_id, uid, created_at, gameover, winner, board_size, number_of_boards, difficulty)
 VALUES ($1, $2, now(), false, NULL, $3, $4, $5)
@@ -98,4 +83,21 @@ func (q *Queries) GetLatestSessionStateByPlayerId(ctx context.Context, uid strin
 		pq.Array(&i.Boards),
 	)
 	return i, err
+}
+
+const updateSessionAfterGameover = `-- name: UpdateSessionAfterGameover :exec
+UPDATE session
+SET gameover = true,
+    winner = $2
+WHERE session_id = $1
+`
+
+type UpdateSessionAfterGameoverParams struct {
+	SessionID string       `json:"session_id"`
+	Winner    sql.NullBool `json:"winner"`
+}
+
+func (q *Queries) UpdateSessionAfterGameover(ctx context.Context, arg UpdateSessionAfterGameoverParams) error {
+	_, err := q.exec(ctx, q.updateSessionAfterGameoverStmt, updateSessionAfterGameover, arg.SessionID, arg.Winner)
+	return err
 }

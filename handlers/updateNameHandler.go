@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log"
+
 	"github.com/labstack/echo/v4"
 	"github.com/rakshitg600/notakto-solo/functions"
 	"github.com/rakshitg600/notakto-solo/types"
@@ -12,7 +14,7 @@ func (h *Handler) UpdateNameHandler(c echo.Context) error {
 	if !ok || uid == "" {
 		return echo.NewHTTPError(401, "unauthorized: missing or invalid uid")
 	}
-
+	log.Printf("UpdateNameHandler called for uid: %s", uid)
 	// ✅ Try binding the body
 	var req types.UpdatePlayerNameRequest
 	if err := c.Bind(&req); err != nil {
@@ -27,5 +29,6 @@ func (h *Handler) UpdateNameHandler(c echo.Context) error {
 		return echo.NewHTTPError(500, err.Error())
 	}
 	// ✅ Return the updated name
+	log.Printf("Updated name for uid %s to %s", uid, updatedName)
 	return c.JSON(200, map[string]string{"name": updatedName})
 }

@@ -12,9 +12,15 @@ type Querier interface {
 	CreateInitialSessionState(ctx context.Context, arg CreateInitialSessionStateParams) error
 	CreatePlayer(ctx context.Context, arg CreatePlayerParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
+	CreateWallet(ctx context.Context, arg CreateWalletParams) error
 	GetLatestSessionStateByPlayerId(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdRow, error)
 	GetPlayerById(ctx context.Context, uid string) (Player, error)
+	GetWalletByPlayerId(ctx context.Context, uid string) (Wallet, error)
 	UpdatePlayerName(ctx context.Context, arg UpdatePlayerNameParams) (Player, error)
+	UpdateSessionAfterGameover(ctx context.Context, arg UpdateSessionAfterGameoverParams) error
+	UpdateSessionState(ctx context.Context, arg UpdateSessionStateParams) error
+	UpdateWalletCoinsAndXpReward(ctx context.Context, arg UpdateWalletCoinsAndXpRewardParams) error
+	UpdateWalletXpReward(ctx context.Context, arg UpdateWalletXpRewardParams) error
 }
 
 var _ Querier = (*Queries)(nil)

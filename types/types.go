@@ -23,3 +23,8 @@ type FirebaseTokenInfo struct {
 type UpdatePlayerNameRequest struct {
 	Name string `json:"name"`
 }
+type MakeMoveRequest struct {
+	SessionID  string `json:"sessionId"`
+	BoardIndex int32  `json:"boardIndex"`
+	CellIndex  int32  `json:"cellIndex"`
+}

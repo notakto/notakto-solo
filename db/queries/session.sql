@@ -21,6 +21,8 @@ LIMIT 1;
 INSERT INTO session (session_id, uid, created_at, gameover, winner, board_size, number_of_boards, difficulty)
 VALUES ($1, $2, now(), false, NULL, $3, $4, $5);
 
--- name: CreateInitialSessionState :exec
-INSERT INTO sessionstate (session_id, boards)
-VALUES ($1, $2);
+-- name: UpdateSessionAfterGameover :exec
+UPDATE session
+SET gameover = true,
+    winner = $2
+WHERE session_id = $1;

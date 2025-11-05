@@ -33,14 +33,32 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createSessionStmt, err = db.PrepareContext(ctx, createSession); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateSession: %w", err)
 	}
+	if q.createWalletStmt, err = db.PrepareContext(ctx, createWallet); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateWallet: %w", err)
+	}
 	if q.getLatestSessionStateByPlayerIdStmt, err = db.PrepareContext(ctx, getLatestSessionStateByPlayerId); err != nil {
 		return nil, fmt.Errorf("error preparing query GetLatestSessionStateByPlayerId: %w", err)
 	}
 	if q.getPlayerByIdStmt, err = db.PrepareContext(ctx, getPlayerById); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPlayerById: %w", err)
 	}
+	if q.getWalletByPlayerIdStmt, err = db.PrepareContext(ctx, getWalletByPlayerId); err != nil {
+		return nil, fmt.Errorf("error preparing query GetWalletByPlayerId: %w", err)
+	}
 	if q.updatePlayerNameStmt, err = db.PrepareContext(ctx, updatePlayerName); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdatePlayerName: %w", err)
+	}
+	if q.updateSessionAfterGameoverStmt, err = db.PrepareContext(ctx, updateSessionAfterGameover); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateSessionAfterGameover: %w", err)
+	}
+	if q.updateSessionStateStmt, err = db.PrepareContext(ctx, updateSessionState); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateSessionState: %w", err)
+	}
+	if q.updateWalletCoinsAndXpRewardStmt, err = db.PrepareContext(ctx, updateWalletCoinsAndXpReward); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateWalletCoinsAndXpReward: %w", err)
+	}
+	if q.updateWalletXpRewardStmt, err = db.PrepareContext(ctx, updateWalletXpReward); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateWalletXpReward: %w", err)
 	}
 	return &q, nil
 }
@@ -62,6 +80,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createSessionStmt: %w", cerr)
 		}
 	}
+	if q.createWalletStmt != nil {
+		if cerr := q.createWalletStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createWalletStmt: %w", cerr)
+		}
+	}
 	if q.getLatestSessionStateByPlayerIdStmt != nil {
 		if cerr := q.getLatestSessionStateByPlayerIdStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getLatestSessionStateByPlayerIdStmt: %w", cerr)
@@ -72,9 +95,34 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getPlayerByIdStmt: %w", cerr)
 		}
 	}
+	if q.getWalletByPlayerIdStmt != nil {
+		if cerr := q.getWalletByPlayerIdStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getWalletByPlayerIdStmt: %w", cerr)
+		}
+	}
 	if q.updatePlayerNameStmt != nil {
 		if cerr := q.updatePlayerNameStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updatePlayerNameStmt: %w", cerr)
+		}
+	}
+	if q.updateSessionAfterGameoverStmt != nil {
+		if cerr := q.updateSessionAfterGameoverStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateSessionAfterGameoverStmt: %w", cerr)
+		}
+	}
+	if q.updateSessionStateStmt != nil {
+		if cerr := q.updateSessionStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateSessionStateStmt: %w", cerr)
+		}
+	}
+	if q.updateWalletCoinsAndXpRewardStmt != nil {
+		if cerr := q.updateWalletCoinsAndXpRewardStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateWalletCoinsAndXpRewardStmt: %w", cerr)
+		}
+	}
+	if q.updateWalletXpRewardStmt != nil {
+		if cerr := q.updateWalletXpRewardStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateWalletXpRewardStmt: %w", cerr)
 		}
 	}
 	return err
@@ -119,9 +167,15 @@ type Queries struct {
 	createInitialSessionStateStmt       *sql.Stmt
 	createPlayerStmt                    *sql.Stmt
 	createSessionStmt                   *sql.Stmt
+	createWalletStmt                    *sql.Stmt
 	getLatestSessionStateByPlayerIdStmt *sql.Stmt
 	getPlayerByIdStmt                   *sql.Stmt
+	getWalletByPlayerIdStmt             *sql.Stmt
 	updatePlayerNameStmt                *sql.Stmt
+	updateSessionAfterGameoverStmt      *sql.Stmt
+	updateSessionStateStmt              *sql.Stmt
+	updateWalletCoinsAndXpRewardStmt    *sql.Stmt
+	updateWalletXpRewardStmt            *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
@@ -131,8 +185,14 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createInitialSessionStateStmt:       q.createInitialSessionStateStmt,
 		createPlayerStmt:                    q.createPlayerStmt,
 		createSessionStmt:                   q.createSessionStmt,
+		createWalletStmt:                    q.createWalletStmt,
 		getLatestSessionStateByPlayerIdStmt: q.getLatestSessionStateByPlayerIdStmt,
 		getPlayerByIdStmt:                   q.getPlayerByIdStmt,
+		getWalletByPlayerIdStmt:             q.getWalletByPlayerIdStmt,
 		updatePlayerNameStmt:                q.updatePlayerNameStmt,
+		updateSessionAfterGameoverStmt:      q.updateSessionAfterGameoverStmt,
+		updateSessionStateStmt:              q.updateSessionStateStmt,
+		updateWalletCoinsAndXpRewardStmt:    q.updateWalletCoinsAndXpRewardStmt,
+		updateWalletXpRewardStmt:            q.updateWalletXpRewardStmt,
 	}
 }

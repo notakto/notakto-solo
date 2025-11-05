@@ -12,3 +12,7 @@
 12. New Solo Mode with 1 minute timer from last move []
 13. Consider all possible network partitions and make server robust []
 14. Firebase api vs sdk []
+15. Explore if we could migrate to protobuf []
+16. Transactions implementation []
+17. Architecture fix to decide how to share state between services especially Wallet table []
+18. Improve error handling 

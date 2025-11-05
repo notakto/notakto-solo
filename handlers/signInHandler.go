@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -28,6 +29,7 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 	if !ok || uid == "" {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid token")
 	}
+	log.Printf("SignInHandler called for uid: %s", uid)
 	profile_pic, name, email, new, err := functions.EnsureLogin(c.Request().Context(), h.Queries, uid, idToken)
 	if err != nil {
 		c.Logger().Errorf("EnsurePlayer failed: %v", err)
@@ -41,5 +43,6 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		ProfilePic: profile_pic,
 		NewAccount: new,
 	}
+	log.Printf("User signed in: %s (new account: %v), name: %s, email %s, profilePic: %s", uid, new, name, email, profile_pic)
 	return c.JSON(http.StatusOK, resp)
 }

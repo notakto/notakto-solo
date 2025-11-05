@@ -1,0 +1,142 @@
+package functions
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+
+	db "github.com/rakshitg600/notakto-solo/db/generated"
+)
+
+func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID string, boardIndex int32, cellIndex int32) (
+	boards []int32,
+	gameOver bool,
+	winner bool,
+	coinsRewarded int32,
+	xpRewarded int32,
+	err error,
+) {
+	// STEP 1: Validate sessionId
+	existing, err := q.GetLatestSessionStateByPlayerId(ctx, uid)
+	if err != nil {
+		return nil, false, false, 0, 0, err
+	}
+	if existing.SessionID != sessionID {
+		return nil, false, false, 0, 0, errors.New("session expired or not found")
+	}
+	// STEP 2: Validate gameover
+	if existing.Gameover.Valid && existing.Gameover.Bool {
+		return nil, true, existing.Winner.Bool, 0, 0, errors.New("game is already over")
+	}
+	// STEP 3: Validate BoardIndex
+	if boardIndex < 0 || boardIndex >= existing.NumberOfBoards.Int32 {
+		return nil, false, false, 0, 0, errors.New("invalid board index")
+	}
+	// STEP 4: Validate CellIndex
+	boardSize := existing.BoardSize.Int32
+	if cellIndex < 0 || cellIndex >= (boardSize*boardSize) {
+		return nil, false, false, 0, 0, errors.New("invalid cell index")
+	}
+	// STEP 5: Validate if board is alive
+	boardAlive := IsBoardDead(boardIndex, existing.Boards, boardSize, existing.NumberOfBoards.Int32)
+	if !boardAlive {
+		return nil, false, false, 0, 0, errors.New("selected board is already dead")
+	}
+	// STEP 6: Validate if cell is already marked
+	moveIndex := boardIndex*boardSize*boardSize + cellIndex
+	for i := 0; i < len(existing.Boards); i++ {
+		if existing.Boards[i] == moveIndex {
+			return nil, false, false, 0, 0, errors.New("cell is already marked")
+		}
+	}
+	// STEP 7: Make Move
+	existing.Boards = append(existing.Boards, moveIndex)
+	// STEP 8: Check for gameover
+	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
+	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
+		if !IsBoardDead(i, existing.Boards, boardSize, existing.NumberOfBoards.Int32) {
+			existing.Gameover = sql.NullBool{Bool: false, Valid: true}
+			break
+		}
+	}
+	if existing.Gameover.Valid && existing.Gameover.Bool {
+		existing.Winner = sql.NullBool{Bool: false, Valid: true}
+	} else if existing.Gameover.Valid && !existing.Gameover.Bool {
+		existing.Winner = sql.NullBool{Bool: false, Valid: false}
+	}
+	// STEP 9: Update DB state || AI Makes move and Update DB state
+	// 9.1 Update session state in db
+	err = q.UpdateSessionState(ctx, db.UpdateSessionStateParams{
+		SessionID: sessionID,
+		Boards:    existing.Boards,
+	})
+	if err != nil {
+		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+	}
+	// 9.2 If gameover update session and rewards
+	if existing.Gameover.Valid && existing.Gameover.Bool {
+		err = q.UpdateSessionAfterGameover(ctx, db.UpdateSessionAfterGameoverParams{
+			SessionID: sessionID,
+			Winner:    existing.Winner,
+		})
+		if err != nil {
+			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+		}
+		_, xpReward := calculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
+		err = q.UpdateWalletXpReward(ctx, db.UpdateWalletXpRewardParams{
+			Uid: uid,
+			Xp:  sql.NullInt32{Int32: xpReward, Valid: true},
+		})
+		if err != nil {
+			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+		}
+		return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, xpReward, nil
+	}
+	// 9.3 If not gameover, AI makes a move
+	if existing.Gameover.Valid && !existing.Gameover.Bool {
+		aiMoveIndex := GetAIMove(existing.Boards, boardSize, existing.NumberOfBoards.Int32, existing.Difficulty.Int32)
+		existing.Boards = append(existing.Boards, aiMoveIndex)
+		// Check for gameover after AI move
+		existing.Gameover = sql.NullBool{Bool: true, Valid: true}
+		for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
+			if !IsBoardDead(i, existing.Boards, boardSize, existing.NumberOfBoards.Int32) {
+				existing.Gameover = sql.NullBool{Bool: false, Valid: true}
+				break
+			}
+		}
+		if existing.Gameover.Valid && existing.Gameover.Bool {
+			existing.Winner = sql.NullBool{Bool: true, Valid: true}
+		} else if existing.Gameover.Valid && !existing.Gameover.Bool {
+			existing.Winner = sql.NullBool{Bool: false, Valid: false}
+		}
+		// Update session state after AI move
+		err = q.UpdateSessionState(ctx, db.UpdateSessionStateParams{
+			SessionID: sessionID,
+			Boards:    existing.Boards,
+		})
+		if err != nil {
+			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+		}
+		// If gameover after AI move, update session
+		if existing.Gameover.Valid && existing.Gameover.Bool {
+			err = q.UpdateSessionAfterGameover(ctx, db.UpdateSessionAfterGameoverParams{
+				SessionID: sessionID,
+				Winner:    existing.Winner,
+			})
+			if err != nil {
+				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+			}
+			coinsReward, xpReward := calculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
+			err = q.UpdateWalletCoinsAndXpReward(ctx, db.UpdateWalletCoinsAndXpRewardParams{
+				Uid:   uid,
+				Coins: sql.NullInt32{Int32: coinsReward, Valid: true},
+				Xp:    sql.NullInt32{Int32: xpReward, Valid: true},
+			})
+			if err != nil {
+				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+			}
+			return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, coinsReward, xpReward, nil
+		}
+	}
+	return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, errors.New("unexpected behaviour")
+}

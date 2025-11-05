@@ -41,5 +41,16 @@ func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string)
 	if err != nil {
 		return "", "", "", true, err
 	}
+	// STEP 4: Create Wallet for player
+	err = q.CreateWallet(ctx, db.CreateWalletParams{
+		Uid:   uid,
+		Coins: sql.NullInt32{Int32: 1000, Valid: true},
+		Xp:    sql.NullInt32{Int32: 0, Valid: true},
+	})
+	if err != nil {
+		return "", "", "", true, err
+	}
+
+	// STEP 5: Return values
 	return profile_pic, name, email, true, nil
 }

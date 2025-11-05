@@ -12,4 +12,5 @@ func RegisterRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.POST("/v1/update-name", h.UpdateNameHandler, middleware.FirebaseAuthMiddleware)
 	e.HEAD("/v1/health-head", h.HealthHeadHandler)
 	e.GET("/v1/health-get", h.HealthGetHandler)
+	e.POST("/v1/make-move", h.MakeMoveHandler, middleware.FirebaseAuthMiddleware)
 }
