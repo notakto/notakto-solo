@@ -22,7 +22,7 @@ type Querier interface {
 	UpdateSessionAfterQuitGame(ctx context.Context, sessionID string) error
 	UpdateSessionState(ctx context.Context, arg UpdateSessionStateParams) error
 	UpdateWalletCoinsAndXpReward(ctx context.Context, arg UpdateWalletCoinsAndXpRewardParams) error
-	UpdateWalletSkipMove(ctx context.Context, arg UpdateWalletSkipMoveParams) error
+	UpdateWalletReduceCoins(ctx context.Context, arg UpdateWalletReduceCoinsParams) error
 	UpdateWalletXpReward(ctx context.Context, arg UpdateWalletXpRewardParams) error
 }
 

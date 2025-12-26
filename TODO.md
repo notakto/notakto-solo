@@ -20,3 +20,4 @@
 20. only one api call at a time for a user (per uid serialisation) []
 21. remove and change logging []
 22. migrate from lib/pq to pgx []
+23. write all manual tests []

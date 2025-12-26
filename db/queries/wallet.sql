@@ -21,7 +21,7 @@ UPDATE wallet
 SET xp = xp+$2
 WHERE uid = $1;
 
--- name: UpdateWalletSkipMove :exec
+-- name: UpdateWalletReduceCoins :exec
 UPDATE wallet
 SET coins = coins-$2
 WHERE uid = $1;

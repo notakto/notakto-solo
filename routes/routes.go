@@ -16,4 +16,5 @@ func RegisterRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.POST("/v1/quit-game", h.QuitGameHandler, middleware.FirebaseAuthMiddleware)
 	e.GET("/v1/get-wallet", h.GetWalletHandler, middleware.FirebaseAuthMiddleware)
 	e.POST("/v1/skip-move", h.SkipMoveHandler, middleware.FirebaseAuthMiddleware)
+	e.POST("/v1/undo-move", h.UndoMoveHandler, middleware.FirebaseAuthMiddleware)
 }

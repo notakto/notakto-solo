@@ -52,7 +52,7 @@ func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 
 	// STEP 5: Deduct coins
 	const skipMoveCost = 200
-	err = q.UpdateWalletSkipMove(ctx, db.UpdateWalletSkipMoveParams{
+	err = q.UpdateWalletReduceCoins(ctx, db.UpdateWalletReduceCoinsParams{
 		Uid:   uid,
 		Coins: sql.NullInt32{Int32: skipMoveCost, Valid: true},
 	})

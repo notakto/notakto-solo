@@ -69,3 +69,9 @@ type SkipMoveResponse struct {
 	CoinsRewarded int32   `json:"coinsRewarded"`
 	XpRewarded    int32   `json:"xpRewarded"`
 }
+type UndoMoveRequest struct {
+	SessionID string `json:"sessionId"`
+}
+type UndoMoveResponse struct {
+	Boards []int32 `json:"boards"`
+}
