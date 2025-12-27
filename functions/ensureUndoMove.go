@@ -46,7 +46,12 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		return nil, errors.New("insufficient coins to undo move")
 	}
 
-	// STEP 5: Deduct coins
+	// STEP 5: Verify there are moves to undo
+	if len(existing.Boards) < 2 {
+		return nil, errors.New("no moves to undo")
+	}
+
+	// STEP 6: Deduct coins
 	const undoMoveCost = 100
 	err = q.UpdateWalletReduceCoins(ctx, db.UpdateWalletReduceCoinsParams{
 		Uid:   uid,
@@ -56,12 +61,8 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		return nil, err
 	}
 
-	// pop last element (if not empty)
-	if len(existing.Boards) >= 2 {
-		existing.Boards = existing.Boards[:len(existing.Boards)-2]
-	} else {
-		return nil, errors.New("no moves to undo")
-	}
+	// STEP 7: Pop last two elements (player move + AI move)
+	existing.Boards = existing.Boards[:len(existing.Boards)-2]
 	// Update session state after AI move
 	err = q.UpdateSessionState(ctx, db.UpdateSessionStateParams{
 		SessionID: sessionID,
