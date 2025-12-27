@@ -66,6 +66,8 @@ func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		// No valid moves for AI - this shouldn't happen if game is not over
 		return existing.Boards, false, false, 0, 0, errors.New("AI could not find a valid move")
 	}
+
+	existing.Boards = append(existing.Boards, -1) // Placeholder for player's skipped move
 	existing.Boards = append(existing.Boards, aiMoveIndex)
 	// Check for gameover after AI move
 	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
