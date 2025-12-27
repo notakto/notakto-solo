@@ -30,6 +30,12 @@ func (h *Handler) UndoMoveHandler(c echo.Context) error {
 	)
 	if err != nil {
 		c.Logger().Errorf("UndoMove failed: %v", err)
+		// Return appropriate status codes based on error type
+		errMsg := err.Error()
+		if errMsg == "session expired or not found" || errMsg == "game is already over" || 
+		   errMsg == "insufficient coins to undo move" || errMsg == "no moves to undo" {
+			return echo.NewHTTPError(http.StatusBadRequest, errMsg)
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to process undo move")
 	}
 
