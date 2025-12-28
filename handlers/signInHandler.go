@@ -8,9 +8,15 @@ import (
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/functions"
-	"github.com/rakshitg600/notakto-solo/types"
 )
 
+type SignInResponse struct {
+	Uid        string `json:"uid"`
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	ProfilePic string `json:"profile_pic"`
+	NewAccount bool   `json:"new_account"`
+}
 type Handler struct {
 	Queries *db.Queries
 }
@@ -36,7 +42,7 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	resp := types.SignInResponse{
+	resp := SignInResponse{
 		Uid:        uid,
 		Name:       name,
 		Email:      email,

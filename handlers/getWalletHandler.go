@@ -7,8 +7,14 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/rakshitg600/notakto-solo/functions"
-	"github.com/rakshitg600/notakto-solo/types"
 )
+
+type GetWalletResponse struct {
+	Coins   int32  `json:"coins"`
+	XP      int32  `json:"xp"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
 
 func (h *Handler) GetWalletHandler(c echo.Context) error {
 	uid, ok := c.Get("uid").(string)
@@ -19,7 +25,7 @@ func (h *Handler) GetWalletHandler(c echo.Context) error {
 	coins, xp, err := functions.EnsureGetWallet(c.Request().Context(), h.Queries, uid)
 	if err != nil {
 		c.Logger().Errorf("EnsureGetWallet failed: %v", err)
-		return c.JSON(http.StatusOK, types.GetWalletResponse{
+		return c.JSON(http.StatusOK, GetWalletResponse{
 			Coins:   coins,
 			XP:      xp,
 			Success: false,
@@ -27,7 +33,7 @@ func (h *Handler) GetWalletHandler(c echo.Context) error {
 		})
 	}
 
-	resp := types.GetWalletResponse{
+	resp := GetWalletResponse{
 		Success: true,
 		Coins:   coins,
 		XP:      xp,

@@ -6,8 +6,18 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rakshitg600/notakto-solo/functions"
-	"github.com/rakshitg600/notakto-solo/types"
 )
+
+type SkipMoveRequest struct {
+	SessionID string `json:"sessionId"`
+}
+type SkipMoveResponse struct {
+	Boards        []int32 `json:"boards"`
+	Gameover      bool    `json:"gameover"`
+	Winner        bool    `json:"winner"`
+	CoinsRewarded int32   `json:"coinsRewarded"`
+	XpRewarded    int32   `json:"xpRewarded"`
+}
 
 func (h *Handler) SkipMoveHandler(c echo.Context) error {
 	// ✅ Get UID
@@ -18,7 +28,7 @@ func (h *Handler) SkipMoveHandler(c echo.Context) error {
 
 	log.Printf("SkipMoveHandler called for uid: %s", uid)
 	// ✅ Try binding the body
-	var req types.SkipMoveRequest
+	var req SkipMoveRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
@@ -33,7 +43,7 @@ func (h *Handler) SkipMoveHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to process skip move")
 	}
 
-	resp := types.SkipMoveResponse{
+	resp := SkipMoveResponse{
 		Boards:        boards,
 		Gameover:      gameOver,
 		Winner:        winner,

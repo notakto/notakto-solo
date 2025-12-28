@@ -5,8 +5,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rakshitg600/notakto-solo/functions"
-	"github.com/rakshitg600/notakto-solo/types"
 )
+
+type UpdatePlayerNameRequest struct {
+	Name string `json:"name"`
+}
 
 func (h *Handler) UpdateNameHandler(c echo.Context) error {
 	// ✅ Get UID
@@ -16,7 +19,7 @@ func (h *Handler) UpdateNameHandler(c echo.Context) error {
 	}
 	log.Printf("UpdateNameHandler called for uid: %s", uid)
 	// ✅ Try binding the body
-	var req types.UpdatePlayerNameRequest
+	var req UpdatePlayerNameRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(400, "invalid request body")
 	}
