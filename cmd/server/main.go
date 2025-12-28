@@ -4,14 +4,16 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	_ "github.com/lib/pq"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/handlers"
-	"github.com/rakshitg600/notakto-solo/middleware"
 	"github.com/rakshitg600/notakto-solo/routes"
+	"github.com/rakshitg600/notakto-solo/types"
+	"github.com/rakshitg600/notakto-solo/valkey"
 )
 
 func main() {
@@ -34,8 +36,20 @@ func main() {
 	queries := db.New(conn)
 	handler := handlers.NewHandler(queries)
 
+	valkeyURL := os.Getenv("VALKEY_URL")
+	if valkeyURL == "" {
+		panic("VALKEY_URL is not set")
+	}
+	valkeyClient := valkey.NewClient(
+		valkeyURL,
+		"", // password
+		0,  // default DB
+	)
+	valkeyConfig := types.RateLimiterConfig{
+		Limit:  100,             // 100 requests
+		Window: 1 * time.Minute, // per minute
+	}
 	e := echo.New()
-	e.Use(middleware.CORSMiddleware)
-	routes.RegisterRoutes(e, handler)
+	routes.RegisterRoutes(e, handler, valkeyClient, valkeyConfig)
 	e.Logger.Fatal(e.Start(":1323"))
 }

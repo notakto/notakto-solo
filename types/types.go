@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 // CreateGameRequest holds creation params
 type CreateGameRequest struct {
 	NumberOfBoards int32 `json:"numberOfBoards"`
@@ -74,4 +76,9 @@ type UndoMoveRequest struct {
 }
 type UndoMoveResponse struct {
 	Boards []int32 `json:"boards"`
+}
+type RateLimiterConfig struct {
+	Limit  int           // max requests
+	Window time.Duration // window duration
+	Prefix string        // redis key prefix
 }
