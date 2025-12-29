@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"os"
-	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -12,7 +11,6 @@ import (
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/handlers"
 	"github.com/rakshitg600/notakto-solo/routes"
-	"github.com/rakshitg600/notakto-solo/types"
 	"github.com/rakshitg600/notakto-solo/valkey"
 )
 
@@ -45,11 +43,7 @@ func main() {
 		"", // password
 		0,  // default DB
 	)
-	valkeyConfig := types.RateLimiterConfig{
-		Limit:  100,             // 100 requests
-		Window: 1 * time.Minute, // per minute
-	}
 	e := echo.New()
-	routes.RegisterRoutes(e, handler, valkeyClient, valkeyConfig)
+	routes.RegisterRoutes(e, handler, valkeyClient)
 	e.Logger.Fatal(e.Start(":1323"))
 }
