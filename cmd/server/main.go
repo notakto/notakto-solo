@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -24,6 +25,14 @@ func main() {
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal(err)
+	}
+	conn.SetMaxOpenConns(20)
+	conn.SetMaxIdleConns(10)
+	conn.SetConnMaxLifetime(30 * time.Minute)
+	conn.SetConnMaxIdleTime(5 * time.Minute)
+
+	if err := conn.Ping(); err != nil {
+		log.Fatal("failed to connect to database:", err)
 	}
 	defer conn.Close()
 

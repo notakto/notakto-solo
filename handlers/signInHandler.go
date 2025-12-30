@@ -6,7 +6,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/functions"
 )
 
@@ -16,13 +15,6 @@ type SignInResponse struct {
 	Email      string `json:"email"`
 	ProfilePic string `json:"profile_pic"`
 	NewAccount bool   `json:"new_account"`
-}
-type Handler struct {
-	Queries *db.Queries
-}
-
-func NewHandler(q *db.Queries) *Handler {
-	return &Handler{Queries: q}
 }
 
 func (h *Handler) SignInHandler(c echo.Context) error {
@@ -36,7 +28,9 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid token")
 	}
 	log.Printf("SignInHandler called for uid: %s", uid)
-	profile_pic, name, email, new, err := functions.EnsureLogin(c.Request().Context(), h.Queries, uid, idToken)
+	ctx, cancel := WithDBTimeout(c.Request().Context())
+	defer cancel()
+	profile_pic, name, email, new, err := functions.EnsureLogin(ctx, h.Queries, uid, idToken)
 	if err != nil {
 		c.Logger().Errorf("EnsurePlayer failed: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
