@@ -3,13 +3,17 @@ package functions
 import (
 	"context"
 	"database/sql"
+	"log"
+	"time"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
 func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string) (profile_pic string, name string, email string, new bool, err error) {
 	// STEP 1: Try existing player
+	start := time.Now()
 	existing, err := q.GetPlayerById(ctx, uid)
+	log.Printf("GetPlayerById took %v, err: %v", time.Since(start), err)
 	if err == nil && existing.Uid != "" {
 		name = existing.Name
 		email = existing.Email
