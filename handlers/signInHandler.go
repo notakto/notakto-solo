@@ -14,6 +14,7 @@ type Handler struct {
 	Queries *db.Queries
 }
 
+// NewHandler creates a Handler initialized with the provided database queries client.
 func NewHandler(q *db.Queries) *Handler {
 	return &Handler{Queries: q}
 }
