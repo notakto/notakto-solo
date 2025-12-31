@@ -8,8 +8,24 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/rakshitg600/notakto-solo/functions"
-	"github.com/rakshitg600/notakto-solo/types"
 )
+
+type CreateGameRequest struct {
+	NumberOfBoards int32 `json:"numberOfBoards"`
+	BoardSize      int32 `json:"boardSize"`
+	Difficulty     int32 `json:"difficulty"`
+}
+type CreateGameResponse struct {
+	SessionId      string  `json:"sessionId"`
+	Uid            string  `json:"uid"`
+	Boards         []int32 `json:"boards"`
+	Winner         bool    `json:"winner"`
+	BoardSize      int32   `json:"boardSize"`
+	NumberOfBoards int32   `json:"numberOfBoards"`
+	Difficulty     int32   `json:"difficulty"`
+	Gameover       bool    `json:"gameover"`
+	CreatedAt      string  `json:"createdAt"`
+}
 
 func (h *Handler) CreateGameHandler(c echo.Context) error {
 	// ✅ Get UID
@@ -19,9 +35,9 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 	}
 	log.Printf("CreateGameHandler called for uid: %s", uid)
 	// ✅ Try binding the body
-	var req types.CreateGameRequest
+	var req CreateGameRequest
 	if err := c.Bind(&req); err != nil {
-		req = types.CreateGameRequest{} // reset if malformed JSON
+		req = CreateGameRequest{} // reset if malformed JSON
 	}
 
 	// ✅ Apply defaults if fields are zero or invalid
@@ -52,7 +68,7 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 
 	createdAtStr := createdAt.UTC().Format(time.RFC3339)
 
-	resp := types.CreateGameResponse{
+	resp := CreateGameResponse{
 		SessionId:      sessionID,
 		Uid:            uidOut,
 		Boards:         boards,

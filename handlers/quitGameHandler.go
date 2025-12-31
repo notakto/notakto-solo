@@ -7,8 +7,15 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/rakshitg600/notakto-solo/functions"
-	"github.com/rakshitg600/notakto-solo/types"
 )
+
+type QuitGameRequest struct {
+	SessionID string `json:"sessionId"`
+}
+type QuitGameResponse struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
 
 func (h *Handler) QuitGameHandler(c echo.Context) error {
 	uid, ok := c.Get("uid").(string)
@@ -17,20 +24,20 @@ func (h *Handler) QuitGameHandler(c echo.Context) error {
 	}
 	log.Printf("QuitGameHandler called for uid: %s", uid)
 	// ✅ Try binding the body
-	var req types.QuitGameRequest
+	var req QuitGameRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 	success, err := functions.EnsureQuitGame(c.Request().Context(), h.Queries, uid, req.SessionID)
 	if err != nil {
 		c.Logger().Errorf("EnsureQuitGame failed: %v", err)
-		return c.JSON(http.StatusOK, types.QuitGameResponse{
+		return c.JSON(http.StatusOK, QuitGameResponse{
 			Success: success,
 			Error:   err.Error(),
 		})
 	}
 
-	resp := types.QuitGameResponse{
+	resp := QuitGameResponse{
 		Success: success,
 	}
 	log.Printf("QuitGameHandler completed for uid: %s, success: %v", uid, success)

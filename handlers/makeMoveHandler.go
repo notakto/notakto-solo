@@ -6,8 +6,21 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rakshitg600/notakto-solo/functions"
-	"github.com/rakshitg600/notakto-solo/types"
 )
+
+type MakeMoveRequest struct {
+	SessionID  string `json:"sessionId"`
+	BoardIndex int32  `json:"boardIndex"`
+	CellIndex  int32  `json:"cellIndex"`
+}
+
+type MakeMoveResponse struct {
+	Boards        []int32 `json:"boards"`
+	Gameover      bool    `json:"gameover"`
+	Winner        bool    `json:"winner"`
+	CoinsRewarded int32   `json:"coinsRewarded"`
+	XpRewarded    int32   `json:"xpRewarded"`
+}
 
 func (h *Handler) MakeMoveHandler(c echo.Context) error {
 	// ✅ Get UID
@@ -18,7 +31,7 @@ func (h *Handler) MakeMoveHandler(c echo.Context) error {
 
 	log.Printf("MakeMoveHandler called for uid: %s", uid)
 	// ✅ Try binding the body
-	var req types.MakeMoveRequest
+	var req MakeMoveRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
@@ -35,7 +48,7 @@ func (h *Handler) MakeMoveHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	resp := types.MakeMoveResponse{
+	resp := MakeMoveResponse{
 		Boards:        boards,
 		Gameover:      gameOver,
 		Winner:        winner,
