@@ -13,6 +13,7 @@ type MakeMoveRequest struct {
 	BoardIndex int32  `json:"boardIndex"`
 	CellIndex  int32  `json:"cellIndex"`
 }
+
 type MakeMoveResponse struct {
 	Boards        []int32 `json:"boards"`
 	Gameover      bool    `json:"gameover"`

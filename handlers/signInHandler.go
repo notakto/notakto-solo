@@ -19,6 +19,14 @@ type SignInResponse struct {
 	NewAccount bool   `json:"new_account"`
 }
 
+type SignInResponse struct {
+	Uid        string `json:"uid"`
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	ProfilePic string `json:"profile_pic"`
+	NewAccount bool   `json:"new_account"`
+}
+
 func (h *Handler) SignInHandler(c echo.Context) error {
 	// ✅ Get UID
 	uid, ok := c.Get("uid").(string)
@@ -26,7 +34,7 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 	idToken, ok := c.Get("idToken").(string)
-	if !ok || uid == "" {
+	if !ok || idToken == "" {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid token")
 	}
 	log.Printf("SignInHandler called for uid: %s", uid)
