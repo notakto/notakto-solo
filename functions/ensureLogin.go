@@ -3,56 +3,75 @@ package functions
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"time"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
-func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string) (profile_pic string, name string, email string, new bool, err error) {
-	// STEP 1: Try existing player
+func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string) (profilePic, name, email string, isNew bool, err error) {
+	// Try existing player with timeout
 	start := time.Now()
-	existing, err := q.GetPlayerById(ctx, uid)
+	fetchCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	existing, err := q.GetPlayerById(fetchCtx, uid)
 	log.Printf("GetPlayerById took %v, err: %v", time.Since(start), err)
-	if err == nil && existing.Uid != "" {
+
+	switch {
+	case err == nil && existing.Uid != "":
+		// Player exists
 		name = existing.Name
 		email = existing.Email
 		if existing.ProfilePic.Valid {
-			profile_pic = existing.ProfilePic.String
-		} else {
-			profile_pic = ""
+			profilePic = existing.ProfilePic.String
 		}
-		return profile_pic, name, email, false, nil
-	}
-	// STEP 2: Fetch from Firebase
-	uid, name, email, profile_pic, err = VerifyFirebaseToken(idToken)
-	if err != nil {
-		return "", "", "", true, err
-	}
+		return profilePic, name, email, false, nil
 
-	// STEP 3: Create new player
-	err = q.CreatePlayer(ctx, db.CreatePlayerParams{
-		Uid:   uid,
-		Name:  name,
-		Email: email,
-		ProfilePic: sql.NullString{
-			String: profile_pic,
-			Valid:  profile_pic != "",
-		},
-	})
-	if err != nil {
-		return "", "", "", true, err
-	}
-	// STEP 4: Create Wallet for player
-	err = q.CreateWallet(ctx, db.CreateWalletParams{
-		Uid:   uid,
-		Coins: sql.NullInt32{Int32: 1000, Valid: true},
-		Xp:    sql.NullInt32{Int32: 0, Valid: true},
-	})
-	if err != nil {
-		return "", "", "", true, err
-	}
+	case errors.Is(err, sql.ErrNoRows):
+		// Player does not exist → create new
+		log.Printf("Player with uid %s does not exist, creating new player", uid)
 
-	// STEP 5: Return values
-	return profile_pic, name, email, true, nil
+		uid, name, email, profilePic, err = VerifyFirebaseToken(idToken)
+		if err != nil {
+			return "", "", "", true, err
+		}
+
+		// Create player
+		createPlayerCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		if err = q.CreatePlayer(createPlayerCtx, db.CreatePlayerParams{
+			Uid:   uid,
+			Name:  name,
+			Email: email,
+			ProfilePic: sql.NullString{
+				String: profilePic,
+				Valid:  profilePic != "",
+			},
+		}); err != nil {
+			return "", "", "", true, err
+		}
+
+		// Create wallet
+		createWalletCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		if err = q.CreateWallet(createWalletCtx, db.CreateWalletParams{
+			Uid:   uid,
+			Coins: sql.NullInt32{Int32: 1000, Valid: true},
+			Xp:    sql.NullInt32{Int32: 0, Valid: true},
+		}); err != nil {
+			return "", "", "", true, err
+		}
+
+		return profilePic, name, email, true, nil
+
+	case err != nil:
+		// Any other DB error
+		return "", "", "", true, err
+
+	default:
+		// Fallback (shouldn’t normally hit)
+		return "", "", "", true, nil
+	}
 }

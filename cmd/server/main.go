@@ -26,6 +26,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Set database connection pool settings
 	conn.SetMaxOpenConns(20)
 	conn.SetMaxIdleConns(10)
 	conn.SetConnMaxLifetime(30 * time.Minute)
@@ -53,6 +55,12 @@ func main() {
 		0,  // default DB
 	)
 	e := echo.New()
+
+	// Set server timeouts
+	e.Server.ReadTimeout = 5 * time.Second   //Max time to read the entire incoming request (headers + body)
+	e.Server.WriteTimeout = 10 * time.Second //Max time to write the response back to client which includes handler execution + response write
+	e.Server.IdleTimeout = 60 * time.Second  //Max time to wait for the next request when keep-alives are enabled
+
 	routes.RegisterRoutes(e, handler, valkeyClient)
 	e.Logger.Fatal(e.Start(":1323"))
 }

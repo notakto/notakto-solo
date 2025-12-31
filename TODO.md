@@ -26,3 +26,6 @@
 26. proper grouping and configuration of middlewares []
 27. monitoring []
 28. Authorization []
+29. Timeouts of cache, db, routes etc []
+30. comments in code []
+31. global+fixed window+whitelist ratelimit health endpoint

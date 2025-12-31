@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -28,7 +30,7 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid token")
 	}
 	log.Printf("SignInHandler called for uid: %s", uid)
-	ctx, cancel := WithDBTimeout(c.Request().Context())
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
 	defer cancel()
 	profile_pic, name, email, new, err := functions.EnsureLogin(ctx, h.Queries, uid, idToken)
 	if err != nil {
