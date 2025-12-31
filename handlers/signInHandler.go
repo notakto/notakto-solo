@@ -33,7 +33,7 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 	idToken, ok := c.Get("idToken").(string)
-	if !ok || uid == "" {
+	if !ok || idToken == "" {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid token")
 	}
 	log.Printf("SignInHandler called for uid: %s", uid)
