@@ -3,11 +3,11 @@ package main
 import (
 	"database/sql"
 	"log"
-	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	_ "github.com/lib/pq"
+
+	"github.com/rakshitg600/notakto-solo/config"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/handlers"
 	"github.com/rakshitg600/notakto-solo/middleware"
@@ -15,11 +15,15 @@ import (
 )
 
 func main() {
-	godotenv.Load()
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		log.Fatal("DATABASE_URL is not set")
+	// Init config once
+	if err := config.InitEnv(); err != nil {
+		log.Fatal("Failed to load environment variables:", err)
 	}
+
+	e := echo.New()
+	e.Use(middleware.CORSMiddleware)
+
+	dbURL := config.MustGetEnv("DATABASE_URL")
 
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -34,8 +38,13 @@ func main() {
 	queries := db.New(conn)
 	handler := handlers.NewHandler(queries)
 
-	e := echo.New()
-	e.Use(middleware.CORSMiddleware)
 	routes.RegisterRoutes(e, handler)
-	e.Logger.Fatal(e.Start(":1323"))
+
+	port, ok := config.GetEnv("PORT")
+	if !ok {
+		log.Fatal("PORT is not set")
+	}
+
+	log.Println("Server starting on port", port)
+	log.Fatal(e.Start(":" + port))
 }

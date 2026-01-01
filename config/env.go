@@ -1,0 +1,101 @@
+package config
+
+import (
+	"errors"
+	"os"
+	"sync"
+
+	"github.com/joho/godotenv"
+)
+
+type EnvMode string
+
+const (
+	EnvPreview EnvMode = "preview"
+	EnvProd    EnvMode = "prod"
+)
+
+var (
+	envStore sync.Map
+	envMode  EnvMode
+)
+
+// InitEnv must be called once at startup
+func InitEnv() error {
+	// Load .env for local/dev
+	err := godotenv.Load()
+	if err != nil {
+		return errors.New("missing env " + err.Error())
+	}
+
+	// Detect environment mode
+	if os.Getenv("RENDER_GIT_PULL_REQUEST") != "" {
+		envMode = EnvPreview
+	} else {
+		envMode = EnvProd
+	}
+
+	// Common variables
+	if err := load("PORT", "1323"); err != nil {
+		return err
+	}
+
+	// Logical variables (callers never care about dev/prod)
+	if err := loadResolved("DATABASE_URL"); err != nil {
+		return err
+	}
+	if err := loadResolved("FIREBASE_URL"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Resolve logical key -> actual env key
+func resolveKey(key string) string {
+	if envMode == EnvPreview {
+		switch key {
+		case "DATABASE_URL":
+			return "DATABASE_DEV_URL"
+		case "FIREBASE_URL":
+			return "FIREBASE_DEV_URL"
+		}
+	}
+	return key
+}
+
+func loadResolved(key string) error {
+	return load(resolveKey(key))
+}
+
+func load(key string, defaults ...string) error {
+	val := os.Getenv(key)
+	if val == "" {
+		if len(defaults) > 0 {
+			val = defaults[0]
+		} else {
+			return errors.New("missing required environment variable: " + key)
+		}
+	}
+	envStore.Store(key, val)
+	return nil
+}
+
+// GetEnv returns the resolved env value
+func GetEnv(key string) (string, bool) {
+	actualKey := resolveKey(key)
+	val, ok := envStore.Load(actualKey)
+	if !ok {
+		return "", false
+	}
+	return val.(string), true
+}
+
+// MustGet panics if env var is missing (recommended for required config)
+func MustGetEnv(key string) string {
+	val, ok := GetEnv(key)
+	if !ok {
+		panic("missing environment variable: " + key)
+	}
+	return val
+}

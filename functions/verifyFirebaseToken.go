@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
+
+	"github.com/rakshitg600/notakto-solo/config"
 )
 
 type FirebaseTokenInfo struct {
@@ -16,7 +17,7 @@ type FirebaseTokenInfo struct {
 }
 
 func VerifyFirebaseToken(idToken string) (string, string, string, string, error) {
-	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=%s", os.Getenv("FIREBASE_API_KEY"))
+	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=%s", config.MustGetEnv("FIREBASE_API_KEY"))
 
 	payload := map[string]interface{}{
 		"idToken": idToken,

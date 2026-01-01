@@ -48,6 +48,7 @@ rules:
   - Middlewares must be reusable and never depend on handlers or functions.
   - Only `functions` layer may directly call `sqlc` DB methods.
   - All data validation and reusable struct definitions go in the `types` package.
+  - All env must be set in config/env.go only 
   - Handlers should:
       1. Parse and validate JSON input using `types` structs and validators.
       2. Call the appropriate `functions` method.
