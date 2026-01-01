@@ -23,7 +23,6 @@ func main() {
 	e.Use(middleware.CORSMiddleware)
 
 	dbURL := config.MustGetEnv("DATABASE_URL")
-
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal(err)
