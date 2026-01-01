@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-	// Init config once
 	if err := config.InitEnv(); err != nil {
 		log.Fatal("Failed to load environment variables:", err)
 	}
