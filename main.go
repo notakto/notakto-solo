@@ -41,6 +41,5 @@ func main() {
 
 	port := config.MustGetEnv("PORT")
 
-	log.Println("Server starting on port", port)
 	log.Fatal(e.Start(":" + port))
 }
