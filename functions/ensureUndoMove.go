@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
@@ -13,7 +14,9 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	err error,
 ) {
 	// STEP 1: Validate sessionId
-	existing, err := q.GetLatestSessionStateByPlayerId(ctx, uid)
+	fetchLatestSessionCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	existing, err := q.GetLatestSessionStateByPlayerId(fetchLatestSessionCtx, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +55,10 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	}
 
 	// STEP 6: Deduct coins
+	updateWalletCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	const undoMoveCost = 100
-	err = q.UpdateWalletReduceCoins(ctx, db.UpdateWalletReduceCoinsParams{
+	err = q.UpdateWalletReduceCoins(updateWalletCtx, db.UpdateWalletReduceCoinsParams{
 		Uid:   uid,
 		Coins: sql.NullInt32{Int32: undoMoveCost, Valid: true},
 	})
@@ -64,7 +69,9 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	// STEP 7: Pop last two elements (player move + AI move)
 	existing.Boards = existing.Boards[:len(existing.Boards)-2]
 	// Update session state after AI move
-	err = q.UpdateSessionState(ctx, db.UpdateSessionStateParams{
+	updateSessionStateCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	err = q.UpdateSessionState(updateSessionStateCtx, db.UpdateSessionStateParams{
 		SessionID: sessionID,
 		Boards:    existing.Boards,
 	})

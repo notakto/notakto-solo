@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 )
 
 type FirebaseTokenInfo struct {
@@ -25,8 +26,9 @@ func VerifyFirebaseToken(idToken string) (string, string, string, string, error)
 
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
+	// Set a timeout for the HTTP client
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", "", "", "", err
 	}
