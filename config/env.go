@@ -23,10 +23,7 @@ var (
 // InitEnv must be called once at startup
 func InitEnv() error {
 	// Load .env for local/dev
-	err := godotenv.Load()
-	if err != nil {
-		return errors.New("missing env " + err.Error())
-	}
+	_ = godotenv.Load()
 
 	// Detect environment mode
 	if os.Getenv("RENDER_GIT_PULL_REQUEST") != "" {
@@ -44,7 +41,7 @@ func InitEnv() error {
 	if err := loadResolved("DATABASE_URL"); err != nil {
 		return err
 	}
-	if err := loadResolved("FIREBASE_URL"); err != nil {
+	if err := loadResolved("FIREBASE_API_KEY"); err != nil {
 		return err
 	}
 
@@ -57,8 +54,8 @@ func resolveKey(key string) string {
 		switch key {
 		case "DATABASE_URL":
 			return "DATABASE_DEV_URL"
-		case "FIREBASE_URL":
-			return "FIREBASE_DEV_URL"
+		case "FIREBASE_API_KEY":
+			return "FIREBASE_DEV_API_KEY"
 		}
 	}
 	return key
