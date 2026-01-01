@@ -40,10 +40,7 @@ func main() {
 
 	routes.RegisterRoutes(e, handler)
 
-	port, ok := config.GetEnv("PORT")
-	if !ok {
-		log.Fatal("PORT is not set")
-	}
+	port := config.MustGetEnv("PORT")
 
 	log.Println("Server starting on port", port)
 	log.Fatal(e.Start(":" + port))
