@@ -18,34 +18,42 @@ const (
 var (
 	envStore sync.Map
 	envMode  EnvMode
+	initOnce sync.Once
 )
 
 // InitEnv must be called once at startup
 func InitEnv() error {
-	// Load .env for local/dev
-	_ = godotenv.Load()
+	var initErr error
+	initOnce.Do(func() {
+		// Load .env for local/dev
+		_ = godotenv.Load()
 
-	// Detect environment mode
-	if os.Getenv("RENDER_GIT_PULL_REQUEST") != "" {
-		envMode = EnvPreview
-	} else {
-		envMode = EnvProd
-	}
+		// Detect environment mode
+		if os.Getenv("RENDER_GIT_PULL_REQUEST") != "" {
+			envMode = EnvPreview
+		} else {
+			envMode = EnvProd
+		}
 
-	// Common variables
-	if err := load("PORT", "1323"); err != nil {
-		return err
-	}
+		// Common variables
+		if err := load("PORT", "1323"); err != nil {
+			initErr = err
+			return
+		}
 
-	// Logical variables (callers never care about dev/prod)
-	if err := loadResolved("DATABASE_URL"); err != nil {
-		return err
-	}
-	if err := loadResolved("FIREBASE_API_KEY"); err != nil {
-		return err
-	}
+		// Logical variables (callers never care about dev/prod)
+		if err := loadResolved("DATABASE_URL"); err != nil {
+			initErr = err
+			return
+		}
 
-	return nil
+		if err := loadResolved("FIREBASE_API_KEY"); err != nil {
+			initErr = err
+			return
+		}
+
+	})
+	return initErr
 }
 
 // Resolve logical key -> actual env key
@@ -88,7 +96,7 @@ func GetEnv(key string) (string, bool) {
 	return val.(string), true
 }
 
-// MustGet panics if env var is missing (recommended for required config)
+// MustGetEnv panics if env var is missing (recommended for required config)
 func MustGetEnv(key string) string {
 	val, ok := GetEnv(key)
 	if !ok {
