@@ -25,7 +25,7 @@ func IsBoardDead(boardIndex int32, boards []int32, boardSize int32) bool {
 		}
 	}
 
-	for i := int32(0); i < boardSize; i++ {
+	for i := range boardSize {
 		if rowCount[i] == boardSize || colCount[i] == boardSize {
 			return true
 		}
