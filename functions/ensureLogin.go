@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"errors"
 	"log"
 	"time"
 
@@ -27,7 +28,10 @@ func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string)
 	defer cancel()
 	existing, err := q.GetPlayerById(GetPlayerByIdCtx, uid)
 	log.Printf("GetPlayerById took %v, err: %v", time.Since(start), err)
-	if err == nil && existing.Uid != "" {
+
+	switch {
+	case err == nil && existing.Uid != "":
+		// Player exists
 		name = existing.Name
 		email = existing.Email
 		if existing.ProfilePic.Valid {
@@ -80,8 +84,9 @@ func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string)
 	})
 	if err != nil {
 		return "", "", "", true, err
-	}
 
-	// STEP 5: Return values
-	return profile_pic, name, email, true, nil
+	default:
+		// Fallback (shouldn’t normally hit)
+		return "", "", "", true, nil
+	}
 }

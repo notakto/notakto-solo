@@ -1,21 +1,22 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/functions"
 )
 
-type Handler struct {
-	Queries *db.Queries
-}
-
-func NewHandler(q *db.Queries) *Handler {
-	return &Handler{Queries: q}
+type SignInResponse struct {
+	Uid        string `json:"uid"`
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	ProfilePic string `json:"profile_pic"`
+	NewAccount bool   `json:"new_account"`
 }
 
 type SignInResponse struct {
