@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
+	"github.com/rakshitg600/notakto-solo/store"
 )
 
 // EnsureUndoMove validates the session and wallet, charges the undo cost, removes the last two moves (player + AI) from the session boards, persists changes, and returns the updated boards.
@@ -20,9 +20,7 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	err error,
 ) {
 	// STEP 1: Validate sessionId
-	getLatestSessionStateByPlayerIdCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	existing, err := q.GetLatestSessionStateByPlayerId(getLatestSessionStateByPlayerIdCtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -62,12 +60,7 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 
 	// STEP 6: Deduct coins
 	const undoMoveCost = 100
-	updateWalletReduceCoinsCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	err = q.UpdateWalletReduceCoins(updateWalletReduceCoinsCtx, db.UpdateWalletReduceCoinsParams{
-		Uid:   uid,
-		Coins: sql.NullInt32{Int32: undoMoveCost, Valid: true},
-	})
+	err = store.UpdateWalletReduceCoins(ctx, q, uid, undoMoveCost)
 	if err != nil {
 		return nil, err
 	}
@@ -75,12 +68,7 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	// STEP 7: Pop last two elements (player move + AI move)
 	existing.Boards = existing.Boards[:len(existing.Boards)-2]
 	// Update session state after AI move
-	updateSessionStateCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	err = q.UpdateSessionState(updateSessionStateCtx, db.UpdateSessionStateParams{
-		SessionID: sessionID,
-		Boards:    existing.Boards,
-	})
+	err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)
 	if err != nil {
 		return nil, err
 	}

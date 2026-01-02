@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
-	"time"
 
-	"github.com/rakshitg600/notakto-solo/config"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/store"
 )
 
 // EnsureLogin authenticates a user and ensures a corresponding player record and wallet exist.
@@ -22,11 +20,7 @@ import (
 // It returns the profile picture URL, name, email, `true` if a new player was created, `false` otherwise, and any error.
 func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string) (profile_pic string, name string, email string, isNew bool, err error) {
 	// STEP 1: Try existing session
-	start := time.Now()
-	GetPlayerByIdCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	existing, err := q.GetPlayerById(GetPlayerByIdCtx, uid)
-	log.Printf("GetPlayerById took %v, err: %v", time.Since(start), err)
+	existing, err := store.GetPlayerById(ctx, q, uid)
 	if err == nil && existing.Uid != "" {
 		name = existing.Name
 		email = existing.Email
@@ -50,38 +44,16 @@ func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string)
 	}
 
 	// STEP 3: Create new player
-	createPlayerCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	err = q.CreatePlayer(createPlayerCtx, db.CreatePlayerParams{
-		Uid:   uid,
-		Name:  name,
-		Email: email,
-		ProfilePic: sql.NullString{
-			String: profile_pic,
-			Valid:  profile_pic != "",
-		},
-	})
+	err = store.CreatePlayer(ctx, q, uid, name, email, profile_pic)
 	if err != nil {
 		return "", "", "", true, err
 	}
 	// STEP 4: Create Wallet for player
-	createWalletCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	err = q.CreateWallet(createWalletCtx, db.CreateWalletParams{
-		Uid: uid,
-		Coins: sql.NullInt32{
-			Int32: config.Wallet.InitialCoins,
-			Valid: true,
-		},
-		Xp: sql.NullInt32{
-			Int32: config.Wallet.InitialXP,
-			Valid: true,
-		},
-	})
+
+	err = store.CreateWallet(ctx, q, uid, name, email, profile_pic)
 	if err != nil {
 		return "", "", "", true, err
 	}
-
 	// STEP 5: Return values
 	return profile_pic, name, email, true, nil
 }
