@@ -19,8 +19,9 @@ func FirebaseAuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid Authorization header format")
 		}
 
+		ctx := c.Request().Context()
 		idToken := authHeader[len("Bearer "):]
-		uid, _, _, _, err := functions.VerifyFirebaseToken(idToken) //underscore here means ignore photo,name,email for middleware
+		uid, _, _, _, err := functions.VerifyFirebaseToken(ctx, idToken) //underscore here means ignore photo,name,email for middleware
 		if err != nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
 		}

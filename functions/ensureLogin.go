@@ -27,7 +27,7 @@ func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string)
 		return profile_pic, name, email, false, nil
 	}
 	// STEP 2: Fetch from Firebase
-	uid, name, email, profile_pic, err = VerifyFirebaseToken(idToken)
+	uid, name, email, profile_pic, err = VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		return "", "", "", true, err
 	}

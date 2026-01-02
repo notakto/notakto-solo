@@ -21,3 +21,12 @@
 21. remove and change logging []
 22. migrate from lib/pq to pgx []
 23. write all manual tests []
+24. refactor to segregate business logic from package functions and rename package functions []
+25. in process (hot) cache like ristretto []
+26. proper grouping and configuration of middlewares []
+27. monitoring []
+28. Authorization []
+29. Timeouts of cache, db, routes etc []
+30. comments in code []
+31. global+fixed window+whitelist ratelimit health endpoint
+32. ensureLogin.go and tokenToId.go making same call, either cache or set in context
