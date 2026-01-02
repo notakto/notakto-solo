@@ -17,7 +17,7 @@ func QuitGameSession(ctx context.Context, q *db.Queries, sessionID string) (
 	err = q.QuitGameSession(ctx, sessionID)
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls
-		log.Printf("Update session state took %v, err: %v", time.Since(start), err)
+		log.Printf("QuitGameSession took %v, err: %v", time.Since(start), err)
 	}
 	return err
 }

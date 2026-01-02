@@ -77,7 +77,7 @@ func EnsureSession(ctx context.Context, q *db.Queries, uid string, numberOfBoard
 	}
 
 	// b) Insert initial session state
-	if err = store.CreateInitialSessionState(ctx, q, newSessionID, []int32{}); err != nil {
+	if err = store.CreateInitialSessionState(ctx, q, newSessionID); err != nil {
 		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
 	}
 

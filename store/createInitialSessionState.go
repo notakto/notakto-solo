@@ -11,8 +11,7 @@ import (
 func CreateInitialSessionState(
 	ctx context.Context,
 	q *db.Queries,
-	newSessionID string,
-	Boards []int32) (
+	newSessionID string) (
 	err error,
 ) {
 	start := time.Now()

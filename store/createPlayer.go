@@ -9,7 +9,7 @@ import (
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
-func CreatePlayer(ctx context.Context, q *db.Queries, uid string, name string, email string, profile_pic string) (
+func CreatePlayer(ctx context.Context, q *db.Queries, uid string, name string, email string, profilePic string) (
 	err error,
 ) {
 	start := time.Now()
@@ -20,8 +20,8 @@ func CreatePlayer(ctx context.Context, q *db.Queries, uid string, name string, e
 		Name:  name,
 		Email: email,
 		ProfilePic: sql.NullString{
-			String: profile_pic,
-			Valid:  profile_pic != "",
+			String: profilePic,
+			Valid:  profilePic != "",
 		},
 	})
 	if time.Since(start) > 2*time.Second {

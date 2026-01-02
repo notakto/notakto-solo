@@ -31,7 +31,7 @@ func CreateSession(
 	})
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls
-		log.Printf("CreateWallet took %v, err: %v", time.Since(start), err)
+		log.Printf("CreateSession took %v, err: %v", time.Since(start), err)
 	}
 	return err
 }
