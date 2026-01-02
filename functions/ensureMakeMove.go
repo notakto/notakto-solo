@@ -4,10 +4,26 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
+// EnsureMakeMove validates the session and the requested move, applies the player's move,
+// optionally applies an AI response, persists session state changes, and awards rewards when the game ends.
+// 
+// The function performs validation of session ownership, board and cell indices, and move legality;
+// it updates the session boards immediately after the player's move, checks for game-over, and if the
+// game continues computes and applies an AI move and rechecks game-over. When a game-over occurs the
+// session is updated and wallet rewards (coins and XP) are applied to the player's account.
+//
+// Returns:
+//   - boards: the session's boards after applying the player's move and any AI move.
+//   - gameOver: true if the game has ended after the applied moves, false otherwise.
+//   - winner: true if the AI is the winner, false otherwise (when meaningful).
+//   - coinsRewarded: coins awarded to the player as part of the game-over rewards, 0 if none or game not ended.
+//   - xpRewarded: XP awarded to the player as part of the game-over rewards, 0 if none or game not ended.
+//   - err: non-nil when validation, DB updates, or AI move resolution fail.
 func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID string, boardIndex int32, cellIndex int32) (
 	boards []int32,
 	gameOver bool,
@@ -17,7 +33,9 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	err error,
 ) {
 	// STEP 1: Validate sessionId
-	existing, err := q.GetLatestSessionStateByPlayerId(ctx, uid)
+	GetLatestSessionStateByPlayerIdCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	existing, err := q.GetLatestSessionStateByPlayerId(GetLatestSessionStateByPlayerIdCtx, uid)
 	if err != nil {
 		return nil, false, false, 0, 0, err
 	}
@@ -66,7 +84,9 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	}
 	// STEP 9: Update DB state || AI Makes move and Update DB state
 	// 9.1 Update session state in db
-	err = q.UpdateSessionState(ctx, db.UpdateSessionStateParams{
+	updateSessionStateCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	err = q.UpdateSessionState(updateSessionStateCtx, db.UpdateSessionStateParams{
 		SessionID: sessionID,
 		Boards:    existing.Boards,
 	})
@@ -75,7 +95,9 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	}
 	// 9.2 If gameover update session and rewards
 	if existing.Gameover.Valid && existing.Gameover.Bool {
-		err = q.UpdateSessionAfterGameover(ctx, db.UpdateSessionAfterGameoverParams{
+		UpdateSessionAfterGameoverCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		err = q.UpdateSessionAfterGameover(UpdateSessionAfterGameoverCtx, db.UpdateSessionAfterGameoverParams{
 			SessionID: sessionID,
 			Winner:    existing.Winner,
 		})
@@ -83,7 +105,9 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
 		_, xpReward := calculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
-		err = q.UpdateWalletXpReward(ctx, db.UpdateWalletXpRewardParams{
+		UpdateWalletXpRewardCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		err = q.UpdateWalletXpReward(UpdateWalletXpRewardCtx, db.UpdateWalletXpRewardParams{
 			Uid: uid,
 			Xp:  sql.NullInt32{Int32: xpReward, Valid: true},
 		})
@@ -114,7 +138,9 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 			existing.Winner = sql.NullBool{Bool: false, Valid: false}
 		}
 		// Update session state after AI move
-		err = q.UpdateSessionState(ctx, db.UpdateSessionStateParams{
+		updateSessionStateCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		err = q.UpdateSessionState(updateSessionStateCtx, db.UpdateSessionStateParams{
 			SessionID: sessionID,
 			Boards:    existing.Boards,
 		})
@@ -131,7 +157,9 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		}
 		// If gameover after AI move, update session
 		if existing.Gameover.Valid && existing.Gameover.Bool {
-			err = q.UpdateSessionAfterGameover(ctx, db.UpdateSessionAfterGameoverParams{
+			UpdateSessionAfterGameoverCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			err = q.UpdateSessionAfterGameover(UpdateSessionAfterGameoverCtx, db.UpdateSessionAfterGameoverParams{
 				SessionID: sessionID,
 				Winner:    existing.Winner,
 			})
@@ -139,7 +167,9 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 			}
 			coinsReward, xpReward := calculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
-			err = q.UpdateWalletCoinsAndXpReward(ctx, db.UpdateWalletCoinsAndXpRewardParams{
+			updateWalletCoinsAndXpRewardCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			err = q.UpdateWalletCoinsAndXpReward(updateWalletCoinsAndXpRewardCtx, db.UpdateWalletCoinsAndXpRewardParams{
 				Uid:   uid,
 				Coins: sql.NullInt32{Int32: coinsReward, Valid: true},
 				Xp:    sql.NullInt32{Int32: xpReward, Valid: true},
