@@ -10,7 +10,9 @@ import (
 )
 
 // EnsureSession returns the latest existing session for a user, or creates a new one if none exists.
-// It returns typed values for the handler to compose the JSON response.
+// EnsureSession retrieves the user's most recent active session if one exists and is not game over; otherwise it creates a new session and initial state and returns the session fields suitable for a JSON response.
+// When an existing non-game-over session is found, its stored session ID, user ID, boards, winner, board size, number of boards, difficulty, gameover flag, and creation time are returned. If no active session exists, a new session and an empty initial state are created and the new session's ID, provided inputs, an empty boards slice, `false` winner, `false` gameover, and the current time are returned.
+// Database operations use per-call timeouts of 3 seconds; any database error is returned.
 func EnsureSession(ctx context.Context, q *db.Queries, uid string, numberOfBoards int32, boardSize int32, difficulty int32) (
 	sessionID string,
 	uidOut string,
@@ -24,7 +26,9 @@ func EnsureSession(ctx context.Context, q *db.Queries, uid string, numberOfBoard
 	err error,
 ) {
 	// STEP 1: Try existing session
-	existing, err := q.GetLatestSessionStateByPlayerId(ctx, uid)
+	getLatestSessionStateByPlayerIdCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	existing, err := q.GetLatestSessionStateByPlayerId(getLatestSessionStateByPlayerIdCtx, uid)
 	if err == nil && existing.SessionID != "" {
 		isGameOver := existing.Gameover.Valid && existing.Gameover.Bool
 		if !isGameOver {
@@ -69,7 +73,9 @@ func EnsureSession(ctx context.Context, q *db.Queries, uid string, numberOfBoard
 	newSessionID := uuid.New().String()
 
 	// a) Insert into session
-	if err = q.CreateSession(ctx, db.CreateSessionParams{
+	createSessionCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	if err = q.CreateSession(createSessionCtx, db.CreateSessionParams{
 		SessionID:      newSessionID,
 		Uid:            uid,
 		BoardSize:      sql.NullInt32{Int32: boardSize, Valid: true},
@@ -80,7 +86,9 @@ func EnsureSession(ctx context.Context, q *db.Queries, uid string, numberOfBoard
 	}
 
 	// b) Insert initial session state
-	if err = q.CreateInitialSessionState(ctx, db.CreateInitialSessionStateParams{
+	createInitialSessionStateCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	if err = q.CreateInitialSessionState(createInitialSessionStateCtx, db.CreateInitialSessionStateParams{
 		SessionID: newSessionID,
 		Boards:    []int32{}, // empty initial boards
 	}); err != nil {
