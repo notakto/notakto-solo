@@ -3,6 +3,7 @@ package functions
 import (
 	"context"
 	"errors"
+	"time"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
@@ -12,7 +13,9 @@ func EnsureQuitGame(ctx context.Context, q *db.Queries, uid string, sessionID st
 	err error,
 ) {
 	// STEP 1: Validate sessionId
-	existing, err := q.GetLatestSessionStateByPlayerId(ctx, uid)
+	getLatestSessionStateByPlayerIdCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	existing, err := q.GetLatestSessionStateByPlayerId(getLatestSessionStateByPlayerIdCtx, uid)
 	if err != nil {
 		return false, err
 	}
@@ -24,7 +27,9 @@ func EnsureQuitGame(ctx context.Context, q *db.Queries, uid string, sessionID st
 		return true, nil
 	}
 	// STEP 3: Update gameover to true
-	err = q.QuitGameSession(ctx, sessionID)
+	quitGameSessionCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	err = q.QuitGameSession(quitGameSessionCtx, sessionID)
 	if err != nil {
 		return false, err
 	}

@@ -11,8 +11,6 @@ import (
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
-// EnsureSession returns the latest existing session for a user, or creates a new one if none exists.
-// It returns typed values for the handler to compose the JSON response.
 func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string) (profile_pic string, name string, email string, isNew bool, err error) {
 	// STEP 1: Try existing session
 	start := time.Now()

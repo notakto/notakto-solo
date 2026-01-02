@@ -24,7 +24,9 @@ func EnsureSession(ctx context.Context, q *db.Queries, uid string, numberOfBoard
 	err error,
 ) {
 	// STEP 1: Try existing session
-	existing, err := q.GetLatestSessionStateByPlayerId(ctx, uid)
+	getLatestSessionStateByPlayerIdCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	existing, err := q.GetLatestSessionStateByPlayerId(getLatestSessionStateByPlayerIdCtx, uid)
 	if err == nil && existing.SessionID != "" {
 		isGameOver := existing.Gameover.Valid && existing.Gameover.Bool
 		if !isGameOver {
@@ -69,7 +71,9 @@ func EnsureSession(ctx context.Context, q *db.Queries, uid string, numberOfBoard
 	newSessionID := uuid.New().String()
 
 	// a) Insert into session
-	if err = q.CreateSession(ctx, db.CreateSessionParams{
+	createSessionCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	if err = q.CreateSession(createSessionCtx, db.CreateSessionParams{
 		SessionID:      newSessionID,
 		Uid:            uid,
 		BoardSize:      sql.NullInt32{Int32: boardSize, Valid: true},
@@ -80,7 +84,9 @@ func EnsureSession(ctx context.Context, q *db.Queries, uid string, numberOfBoard
 	}
 
 	// b) Insert initial session state
-	if err = q.CreateInitialSessionState(ctx, db.CreateInitialSessionStateParams{
+	createInitialSessionStateCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	if err = q.CreateInitialSessionState(createInitialSessionStateCtx, db.CreateInitialSessionStateParams{
 		SessionID: newSessionID,
 		Boards:    []int32{}, // empty initial boards
 	}); err != nil {
