@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/rakshitg600/notakto-solo/functions"
+	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
 type SkipMoveRequest struct {
@@ -32,7 +32,7 @@ func (h *Handler) SkipMoveHandler(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-	boards, gameOver, winner, coinsRewarded, xpRewarded, err := functions.EnsureSkipMove(
+	boards, gameOver, winner, coinsRewarded, xpRewarded, err := usecase.EnsureSkipMove(
 		c.Request().Context(),
 		h.Queries,
 		uid,

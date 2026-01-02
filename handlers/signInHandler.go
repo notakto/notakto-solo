@@ -7,7 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
-	"github.com/rakshitg600/notakto-solo/functions"
+	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
 type Handler struct {
@@ -37,7 +37,7 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid token")
 	}
 	log.Printf("SignInHandler called for uid: %s", uid)
-	profile_pic, name, email, isNew, err := functions.EnsureLogin(c.Request().Context(), h.Queries, uid, idToken)
+	profile_pic, name, email, isNew, err := usecase.EnsureLogin(c.Request().Context(), h.Queries, uid, idToken)
 	if err != nil {
 		c.Logger().Errorf("EnsurePlayer failed: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

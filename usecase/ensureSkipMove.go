@@ -1,4 +1,4 @@
-package functions
+package usecase
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/logic"
 )
 
 // EnsureSkipMove validates the session and processes a player "skip" move by charging the wallet,
@@ -43,7 +44,7 @@ func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	// STEP 3: Verify if game is over before skipping move
 	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
 	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
-		if !IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
+		if !logic.IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
 			existing.Gameover = sql.NullBool{Bool: false, Valid: true}
 			break
 		}
@@ -75,7 +76,7 @@ func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	}
 
 	// STEP 6: AI makes a move
-	aiMoveIndex := GetAIMove(existing.Boards, existing.BoardSize.Int32, existing.NumberOfBoards.Int32, existing.Difficulty.Int32)
+	aiMoveIndex := logic.GetAIMove(existing.Boards, existing.BoardSize.Int32, existing.NumberOfBoards.Int32, existing.Difficulty.Int32)
 	if aiMoveIndex == -1 {
 		// No valid moves for AI - this shouldn't happen if game is not over
 		return existing.Boards, false, false, 0, 0, errors.New("AI could not find a valid move")
@@ -86,7 +87,7 @@ func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	// Check for gameover after AI move
 	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
 	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
-		if !IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
+		if !logic.IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
 			existing.Gameover = sql.NullBool{Bool: false, Valid: true}
 			break
 		}
@@ -125,7 +126,7 @@ func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
-		coinsReward, xpReward := calculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
+		coinsReward, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
 		updateWalletCoinsAndXpRewardCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		defer cancel()
 		err = q.UpdateWalletCoinsAndXpReward(updateWalletCoinsAndXpRewardCtx, db.UpdateWalletCoinsAndXpRewardParams{

@@ -7,7 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/rakshitg600/notakto-solo/functions"
+	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
 type CreateGameRequest struct {
@@ -52,7 +52,7 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 	}
 
 	// ✅✅ Logic: get typed values from EnsureSession
-	sessionID, uidOut, boards, winner, boardSize, numberOfBoards, difficulty, gameover, createdAt, err := functions.EnsureSession(
+	sessionID, uidOut, boards, winner, boardSize, numberOfBoards, difficulty, gameover, createdAt, err := usecase.EnsureSession(
 		c.Request().Context(),
 		h.Queries,
 		uid,

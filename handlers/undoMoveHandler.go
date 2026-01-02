@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/rakshitg600/notakto-solo/functions"
+	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
 type UndoMoveRequest struct {
@@ -28,7 +28,7 @@ func (h *Handler) UndoMoveHandler(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-	boards, err := functions.EnsureUndoMove(
+	boards, err := usecase.EnsureUndoMove(
 		c.Request().Context(),
 		h.Queries,
 		uid,
