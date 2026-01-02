@@ -29,3 +29,7 @@
 29. Timeouts of cache, db, routes etc []
 30. comments in code []
 31. global+fixed window+whitelist ratelimit health endpoint
+32. ensureLogin.go and tokenToId.go making same call, either cache or set in context
+33. signin handler uid 
+34. graceful shutdown
+35. one more layer between sqlc and functions: domain
