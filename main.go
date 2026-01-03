@@ -62,20 +62,23 @@ func main() {
 	handler := handlers.NewHandler(queries)
 
 	routes.RegisterRoutes(e, handler)
-
+	serverErr := make(chan error, 1)
 	go func() {
 		port := config.MustGetEnv("PORT")
 		if err := e.Start(":" + port); err != nil && err != http.ErrServerClosed {
-			log.Fatal("shutting down the server:", err)
+			log.Println("server error:", err)
+			serverErr <- err
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Println("shutdown signal received")
-
+	select {
+	case <-quit:
+		log.Println("shutdown signal received")
+	case err := <-serverErr:
+		log.Println("server failed, initiating shutdown:", err)
+	}
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
