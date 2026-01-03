@@ -52,7 +52,6 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to create pgx pool:", err)
 	}
-	defer pool.Close()
 
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatal("failed to connect to database:", err)
