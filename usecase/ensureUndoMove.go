@@ -1,27 +1,26 @@
-package functions
+package usecase
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/logic"
+	"github.com/rakshitg600/notakto-solo/store"
 )
 
 // EnsureUndoMove validates the session and wallet, charges the undo cost, removes the last two moves (player + AI) from the session boards, persists changes, and returns the updated boards.
-// 
+//
 // It checks that the provided sessionID matches the latest session for uid, verifies the game is not over, ensures at least two moves exist, deducts 100 coins from the wallet, updates the session state in the database, and returns the new boards slice.
-// 
+//
 // The function returns an error if the session is missing or expired, the game is already over, there are fewer than two moves to undo, the wallet has insufficient coins, or any database operation fails.
 func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID string) (
 	boards []int32,
 	err error,
 ) {
 	// STEP 1: Validate sessionId
-	getLatestSessionStateByPlayerIdCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	existing, err := q.GetLatestSessionStateByPlayerId(getLatestSessionStateByPlayerIdCtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -33,10 +32,10 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		return nil, errors.New("game is already over")
 	}
 	// STEP 3: Verify if game is over before undoing move
-	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
+	existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
 	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
-		if !IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
-			existing.Gameover = sql.NullBool{Bool: false, Valid: true}
+		if !logic.IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
+			existing.Gameover = pgtype.Bool{Bool: false, Valid: true}
 			break
 		}
 	}
@@ -61,12 +60,7 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 
 	// STEP 6: Deduct coins
 	const undoMoveCost = 100
-	updateWalletReduceCoinsCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	err = q.UpdateWalletReduceCoins(updateWalletReduceCoinsCtx, db.UpdateWalletReduceCoinsParams{
-		Uid:   uid,
-		Coins: sql.NullInt32{Int32: undoMoveCost, Valid: true},
-	})
+	err = store.UpdateWalletReduceCoins(ctx, q, uid, undoMoveCost)
 	if err != nil {
 		return nil, err
 	}
@@ -74,12 +68,7 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	// STEP 7: Pop last two elements (player move + AI move)
 	existing.Boards = existing.Boards[:len(existing.Boards)-2]
 	// Update session state after AI move
-	updateSessionStateCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	err = q.UpdateSessionState(updateSessionStateCtx, db.UpdateSessionStateParams{
-		SessionID: sessionID,
-		Boards:    existing.Boards,
-	})
+	err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)
 	if err != nil {
 		return nil, err
 	}

@@ -7,7 +7,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createPlayer = `-- name: CreatePlayer :exec
@@ -16,14 +17,14 @@ VALUES ($1, $2, $3, $4)
 `
 
 type CreatePlayerParams struct {
-	Uid        string         `json:"uid"`
-	Email      string         `json:"email"`
-	Name       string         `json:"name"`
-	ProfilePic sql.NullString `json:"profile_pic"`
+	Uid        string      `json:"uid"`
+	Email      string      `json:"email"`
+	Name       string      `json:"name"`
+	ProfilePic pgtype.Text `json:"profile_pic"`
 }
 
 func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) error {
-	_, err := q.db.ExecContext(ctx, createPlayer,
+	_, err := q.db.Exec(ctx, createPlayer,
 		arg.Uid,
 		arg.Email,
 		arg.Name,
@@ -37,7 +38,7 @@ SELECT uid, name, email, profile_pic FROM Player WHERE uid = $1
 `
 
 func (q *Queries) GetPlayerById(ctx context.Context, uid string) (Player, error) {
-	row := q.db.QueryRowContext(ctx, getPlayerById, uid)
+	row := q.db.QueryRow(ctx, getPlayerById, uid)
 	var i Player
 	err := row.Scan(
 		&i.Uid,
@@ -58,7 +59,7 @@ type UpdatePlayerNameParams struct {
 }
 
 func (q *Queries) UpdatePlayerName(ctx context.Context, arg UpdatePlayerNameParams) (Player, error) {
-	row := q.db.QueryRowContext(ctx, updatePlayerName, arg.Uid, arg.Name)
+	row := q.db.QueryRow(ctx, updatePlayerName, arg.Uid, arg.Name)
 	var i Player
 	err := row.Scan(
 		&i.Uid,

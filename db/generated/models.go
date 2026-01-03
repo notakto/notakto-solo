@@ -5,25 +5,25 @@
 package db
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Player struct {
-	Uid        string         `json:"uid"`
-	Name       string         `json:"name"`
-	Email      string         `json:"email"`
-	ProfilePic sql.NullString `json:"profile_pic"`
+	Uid        string      `json:"uid"`
+	Name       string      `json:"name"`
+	Email      string      `json:"email"`
+	ProfilePic pgtype.Text `json:"profile_pic"`
 }
 
 type Session struct {
-	SessionID      string        `json:"session_id"`
-	Uid            string        `json:"uid"`
-	CreatedAt      sql.NullTime  `json:"created_at"`
-	Gameover       sql.NullBool  `json:"gameover"`
-	Winner         sql.NullBool  `json:"winner"`
-	BoardSize      sql.NullInt32 `json:"board_size"`
-	NumberOfBoards sql.NullInt32 `json:"number_of_boards"`
-	Difficulty     sql.NullInt32 `json:"difficulty"`
+	SessionID      string           `json:"session_id"`
+	Uid            string           `json:"uid"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	Gameover       pgtype.Bool      `json:"gameover"`
+	Winner         pgtype.Bool      `json:"winner"`
+	BoardSize      pgtype.Int4      `json:"board_size"`
+	NumberOfBoards pgtype.Int4      `json:"number_of_boards"`
+	Difficulty     pgtype.Int4      `json:"difficulty"`
 }
 
 type Sessionstate struct {
@@ -32,7 +32,7 @@ type Sessionstate struct {
 }
 
 type Wallet struct {
-	Uid   string        `json:"uid"`
-	Coins sql.NullInt32 `json:"coins"`
-	Xp    sql.NullInt32 `json:"xp"`
+	Uid   string      `json:"uid"`
+	Coins pgtype.Int4 `json:"coins"`
+	Xp    pgtype.Int4 `json:"xp"`
 }

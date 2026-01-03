@@ -7,9 +7,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createSession = `-- name: CreateSession :exec
@@ -18,15 +17,15 @@ VALUES ($1, $2, now(), false, NULL, $3, $4, $5)
 `
 
 type CreateSessionParams struct {
-	SessionID      string        `json:"session_id"`
-	Uid            string        `json:"uid"`
-	BoardSize      sql.NullInt32 `json:"board_size"`
-	NumberOfBoards sql.NullInt32 `json:"number_of_boards"`
-	Difficulty     sql.NullInt32 `json:"difficulty"`
+	SessionID      string      `json:"session_id"`
+	Uid            string      `json:"uid"`
+	BoardSize      pgtype.Int4 `json:"board_size"`
+	NumberOfBoards pgtype.Int4 `json:"number_of_boards"`
+	Difficulty     pgtype.Int4 `json:"difficulty"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
-	_, err := q.db.ExecContext(ctx, createSession,
+	_, err := q.db.Exec(ctx, createSession,
 		arg.SessionID,
 		arg.Uid,
 		arg.BoardSize,
@@ -56,19 +55,19 @@ LIMIT 1
 `
 
 type GetLatestSessionStateByPlayerIdRow struct {
-	SessionID      string        `json:"session_id"`
-	Uid            string        `json:"uid"`
-	CreatedAt      sql.NullTime  `json:"created_at"`
-	Gameover       sql.NullBool  `json:"gameover"`
-	Winner         sql.NullBool  `json:"winner"`
-	BoardSize      sql.NullInt32 `json:"board_size"`
-	NumberOfBoards sql.NullInt32 `json:"number_of_boards"`
-	Difficulty     sql.NullInt32 `json:"difficulty"`
-	Boards         []int32       `json:"boards"`
+	SessionID      string           `json:"session_id"`
+	Uid            string           `json:"uid"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	Gameover       pgtype.Bool      `json:"gameover"`
+	Winner         pgtype.Bool      `json:"winner"`
+	BoardSize      pgtype.Int4      `json:"board_size"`
+	NumberOfBoards pgtype.Int4      `json:"number_of_boards"`
+	Difficulty     pgtype.Int4      `json:"difficulty"`
+	Boards         []int32          `json:"boards"`
 }
 
 func (q *Queries) GetLatestSessionStateByPlayerId(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdRow, error) {
-	row := q.db.QueryRowContext(ctx, getLatestSessionStateByPlayerId, uid)
+	row := q.db.QueryRow(ctx, getLatestSessionStateByPlayerId, uid)
 	var i GetLatestSessionStateByPlayerIdRow
 	err := row.Scan(
 		&i.SessionID,
@@ -79,7 +78,7 @@ func (q *Queries) GetLatestSessionStateByPlayerId(ctx context.Context, uid strin
 		&i.BoardSize,
 		&i.NumberOfBoards,
 		&i.Difficulty,
-		pq.Array(&i.Boards),
+		&i.Boards,
 	)
 	return i, err
 }
@@ -92,7 +91,7 @@ WHERE session_id = $1
 `
 
 func (q *Queries) QuitGameSession(ctx context.Context, sessionID string) error {
-	_, err := q.db.ExecContext(ctx, quitGameSession, sessionID)
+	_, err := q.db.Exec(ctx, quitGameSession, sessionID)
 	return err
 }
 
@@ -104,12 +103,12 @@ WHERE session_id = $1
 `
 
 type UpdateSessionAfterGameoverParams struct {
-	SessionID string       `json:"session_id"`
-	Winner    sql.NullBool `json:"winner"`
+	SessionID string      `json:"session_id"`
+	Winner    pgtype.Bool `json:"winner"`
 }
 
 func (q *Queries) UpdateSessionAfterGameover(ctx context.Context, arg UpdateSessionAfterGameoverParams) error {
-	_, err := q.db.ExecContext(ctx, updateSessionAfterGameover, arg.SessionID, arg.Winner)
+	_, err := q.db.Exec(ctx, updateSessionAfterGameover, arg.SessionID, arg.Winner)
 	return err
 }
 
@@ -121,6 +120,6 @@ WHERE session_id = $1
 `
 
 func (q *Queries) UpdateSessionAfterQuitGame(ctx context.Context, sessionID string) error {
-	_, err := q.db.ExecContext(ctx, updateSessionAfterQuitGame, sessionID)
+	_, err := q.db.Exec(ctx, updateSessionAfterQuitGame, sessionID)
 	return err
 }

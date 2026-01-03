@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/labstack/echo/v4"
-	"github.com/rakshitg600/notakto-solo/functions"
+	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
 type UpdatePlayerNameRequest struct {
@@ -27,7 +27,7 @@ func (h *Handler) UpdateNameHandler(c echo.Context) error {
 		return echo.NewHTTPError(400, "name is required")
 	}
 	// ✅ Update the name
-	updatedName, err := functions.EnsureUpdateName(c.Request().Context(), h.Queries, req.Name, uid)
+	updatedName, err := usecase.EnsureUpdateName(c.Request().Context(), h.Queries, req.Name, uid)
 	if err != nil {
 		return echo.NewHTTPError(500, err.Error())
 	}

@@ -1,8 +1,8 @@
-package functions
+package logic
 
 import "math/rand/v2"
 
-func calculateRewards(NumberOfBoards int32, BoardSize int32, DifficultyLevel int32, win bool) (coinsReward int32, xpReward int32) {
+func CalculateRewards(NumberOfBoards int32, BoardSize int32, DifficultyLevel int32, win bool) (coinsReward int32, xpReward int32) {
 	start := int32(0)
 	end := int32(5)
 	baseMultiplier := DifficultyLevel * NumberOfBoards * BoardSize

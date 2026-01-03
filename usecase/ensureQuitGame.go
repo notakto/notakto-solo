@@ -1,11 +1,11 @@
-package functions
+package usecase
 
 import (
 	"context"
 	"errors"
-	"time"
 
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/store"
 )
 
 // EnsureQuitGame verifies that the provided sessionID matches the player's latest session and marks that session as quit in the database.
@@ -16,9 +16,7 @@ func EnsureQuitGame(ctx context.Context, q *db.Queries, uid string, sessionID st
 	err error,
 ) {
 	// STEP 1: Validate sessionId
-	getLatestSessionStateByPlayerIdCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	existing, err := q.GetLatestSessionStateByPlayerId(getLatestSessionStateByPlayerIdCtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
 	if err != nil {
 		return false, err
 	}
@@ -30,9 +28,7 @@ func EnsureQuitGame(ctx context.Context, q *db.Queries, uid string, sessionID st
 		return true, nil
 	}
 	// STEP 3: Update gameover to true
-	quitGameSessionCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	err = q.QuitGameSession(quitGameSessionCtx, sessionID)
+	err = store.QuitGameSession(ctx, q, sessionID)
 	if err != nil {
 		return false, err
 	}
