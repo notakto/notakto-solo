@@ -61,9 +61,9 @@ func main() {
 	handler := handlers.NewHandler(queries)
 
 	routes.RegisterRoutes(e, handler)
+	port := config.MustGetEnv("PORT")
 	serverErr := make(chan error, 1)
 	go func() {
-		port := config.MustGetEnv("PORT")
 		if err := e.Start(":" + port); err != nil && err != http.ErrServerClosed {
 			log.Println("server error:", err)
 			serverErr <- err
@@ -84,7 +84,7 @@ func main() {
 	if err := e.Shutdown(shutdownCtx); err != nil {
 		log.Println("server shutdown failed:", err)
 	}
-
+	log.Println("closing database pool...")
 	pool.Close()
 	log.Println("server exited gracefully")
 }
