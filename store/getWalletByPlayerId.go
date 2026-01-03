@@ -2,11 +2,11 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
@@ -23,8 +23,8 @@ func GetWalletByPlayerId(ctx context.Context, q *db.Queries, uid string) (
 		log.Printf("GetWalletByPlayerId took %v, err: %v", time.Since(start), err)
 	}
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return db.Wallet{}, sql.ErrNoRows
+		if errors.Is(err, pgx.ErrNoRows) {
+			return db.Wallet{}, pgx.ErrNoRows
 		}
 		return db.Wallet{}, err
 	}

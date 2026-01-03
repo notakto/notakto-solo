@@ -2,11 +2,11 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
@@ -23,8 +23,8 @@ func GetLatestSessionStateByPlayerId(ctx context.Context, q *db.Queries, uid str
 		log.Printf("GetLatestSessionStateByPlayerId took %v, err: %v", time.Since(start), err)
 	}
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return db.GetLatestSessionStateByPlayerIdRow{}, sql.ErrNoRows
+		if errors.Is(err, pgx.ErrNoRows) {
+			return db.GetLatestSessionStateByPlayerIdRow{}, pgx.ErrNoRows
 		}
 		return db.GetLatestSessionStateByPlayerIdRow{}, err
 	}

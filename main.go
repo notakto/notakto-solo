@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
-	_ "github.com/lib/pq"
 
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/rakshitg600/notakto-solo/config"

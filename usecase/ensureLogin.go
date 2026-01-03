@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/store"
 )
@@ -34,7 +34,7 @@ func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string)
 	if err == nil && existing.Uid == "" {
 		return "", "", "", false, errors.New("empty player returned from db")
 	}
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && err != pgx.ErrNoRows {
 		return "", "", "", false, err
 	}
 	// STEP 2: Fetch from Firebase
