@@ -2,14 +2,14 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
-func UpdateSessionAfterGameover(ctx context.Context, q *db.Queries, sessionID string, winner sql.NullBool) (
+func UpdateSessionAfterGameover(ctx context.Context, q *db.Queries, sessionID string, winner pgtype.Bool) (
 	err error,
 ) {
 	start := time.Now()

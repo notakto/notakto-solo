@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
@@ -69,17 +69,17 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	// STEP 7: Make Move
 	existing.Boards = append(existing.Boards, moveIndex)
 	// STEP 8: Check for gameover
-	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
+	existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
 	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
 		if !logic.IsBoardDead(i, existing.Boards, boardSize) {
-			existing.Gameover = sql.NullBool{Bool: false, Valid: true}
+			existing.Gameover = pgtype.Bool{Bool: false, Valid: true}
 			break
 		}
 	}
 	if existing.Gameover.Valid && existing.Gameover.Bool {
-		existing.Winner = sql.NullBool{Bool: false, Valid: true}
+		existing.Winner = pgtype.Bool{Bool: false, Valid: true}
 	} else if existing.Gameover.Valid && !existing.Gameover.Bool {
-		existing.Winner = sql.NullBool{Bool: false, Valid: false}
+		existing.Winner = pgtype.Bool{Bool: false, Valid: false}
 	}
 	// STEP 9: Update DB state || AI Makes move and Update DB state
 	// 9.1 Update session state in db
@@ -110,17 +110,17 @@ func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		}
 		existing.Boards = append(existing.Boards, aiMoveIndex)
 		// Check for gameover after AI move
-		existing.Gameover = sql.NullBool{Bool: true, Valid: true}
+		existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
 		for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
 			if !logic.IsBoardDead(i, existing.Boards, boardSize) {
-				existing.Gameover = sql.NullBool{Bool: false, Valid: true}
+				existing.Gameover = pgtype.Bool{Bool: false, Valid: true}
 				break
 			}
 		}
 		if existing.Gameover.Valid && existing.Gameover.Bool {
-			existing.Winner = sql.NullBool{Bool: true, Valid: true}
+			existing.Winner = pgtype.Bool{Bool: true, Valid: true}
 		} else if existing.Gameover.Valid && !existing.Gameover.Bool {
-			existing.Winner = sql.NullBool{Bool: false, Valid: false}
+			existing.Winner = pgtype.Bool{Bool: false, Valid: false}
 		}
 		// Update session state after AI move
 		err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)

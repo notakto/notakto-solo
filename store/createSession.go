@@ -2,10 +2,10 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
@@ -25,9 +25,9 @@ func CreateSession(
 	err = q.CreateSession(ctx, db.CreateSessionParams{
 		SessionID:      newSessionID,
 		Uid:            uid,
-		BoardSize:      sql.NullInt32{Int32: boardSize, Valid: true},
-		NumberOfBoards: sql.NullInt32{Int32: numberOfBoards, Valid: true},
-		Difficulty:     sql.NullInt32{Int32: difficulty, Valid: true},
+		BoardSize:      pgtype.Int4{Int32: boardSize, Valid: true},
+		NumberOfBoards: pgtype.Int4{Int32: numberOfBoards, Valid: true},
+		Difficulty:     pgtype.Int4{Int32: difficulty, Valid: true},
 	})
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls

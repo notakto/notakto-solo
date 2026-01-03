@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-
-	"github.com/lib/pq"
 )
 
 const createInitialSessionState = `-- name: CreateInitialSessionState :exec
@@ -22,7 +20,7 @@ type CreateInitialSessionStateParams struct {
 }
 
 func (q *Queries) CreateInitialSessionState(ctx context.Context, arg CreateInitialSessionStateParams) error {
-	_, err := q.db.ExecContext(ctx, createInitialSessionState, arg.SessionID, pq.Array(arg.Boards))
+	_, err := q.db.Exec(ctx, createInitialSessionState, arg.SessionID, arg.Boards)
 	return err
 }
 
@@ -38,6 +36,6 @@ type UpdateSessionStateParams struct {
 }
 
 func (q *Queries) UpdateSessionState(ctx context.Context, arg UpdateSessionStateParams) error {
-	_, err := q.db.ExecContext(ctx, updateSessionState, arg.SessionID, pq.Array(arg.Boards))
+	_, err := q.db.Exec(ctx, updateSessionState, arg.SessionID, arg.Boards)
 	return err
 }

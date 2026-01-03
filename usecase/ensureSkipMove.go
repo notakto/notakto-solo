@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
@@ -40,10 +40,10 @@ func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		return nil, true, existing.Winner.Bool, 0, 0, errors.New("game is already over")
 	}
 	// STEP 3: Verify if game is over before skipping move
-	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
+	existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
 	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
 		if !logic.IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
-			existing.Gameover = sql.NullBool{Bool: false, Valid: true}
+			existing.Gameover = pgtype.Bool{Bool: false, Valid: true}
 			break
 		}
 	}
@@ -78,17 +78,17 @@ func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 	existing.Boards = append(existing.Boards, -1) // Placeholder for player's skipped move
 	existing.Boards = append(existing.Boards, aiMoveIndex)
 	// Check for gameover after AI move
-	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
+	existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
 	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
 		if !logic.IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
-			existing.Gameover = sql.NullBool{Bool: false, Valid: true}
+			existing.Gameover = pgtype.Bool{Bool: false, Valid: true}
 			break
 		}
 	}
 	if existing.Gameover.Valid && existing.Gameover.Bool {
-		existing.Winner = sql.NullBool{Bool: true, Valid: true}
+		existing.Winner = pgtype.Bool{Bool: true, Valid: true}
 	} else if existing.Gameover.Valid && !existing.Gameover.Bool {
-		existing.Winner = sql.NullBool{Bool: false, Valid: false}
+		existing.Winner = pgtype.Bool{Bool: false, Valid: false}
 	}
 	// Update session state after AI move
 	err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)

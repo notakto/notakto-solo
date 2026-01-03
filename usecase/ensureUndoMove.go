@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
@@ -32,10 +32,10 @@ func EnsureUndoMove(ctx context.Context, q *db.Queries, uid string, sessionID st
 		return nil, errors.New("game is already over")
 	}
 	// STEP 3: Verify if game is over before undoing move
-	existing.Gameover = sql.NullBool{Bool: true, Valid: true}
+	existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
 	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
 		if !logic.IsBoardDead(i, existing.Boards, existing.BoardSize.Int32) {
-			existing.Gameover = sql.NullBool{Bool: false, Valid: true}
+			existing.Gameover = pgtype.Bool{Bool: false, Valid: true}
 			break
 		}
 	}

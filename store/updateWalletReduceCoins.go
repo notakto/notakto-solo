@@ -2,10 +2,10 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
@@ -17,7 +17,7 @@ func UpdateWalletReduceCoins(ctx context.Context, q *db.Queries, uid string, coi
 	defer cancel()
 	err = q.UpdateWalletReduceCoins(ctx, db.UpdateWalletReduceCoinsParams{
 		Uid:   uid,
-		Coins: sql.NullInt32{Int32: coins, Valid: true},
+		Coins: pgtype.Int4{Int32: coins, Valid: true},
 	})
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls

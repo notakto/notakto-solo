@@ -7,7 +7,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createWallet = `-- name: CreateWallet :exec
@@ -16,13 +17,13 @@ VALUES ($1, $2, $3)
 `
 
 type CreateWalletParams struct {
-	Uid   string        `json:"uid"`
-	Coins sql.NullInt32 `json:"coins"`
-	Xp    sql.NullInt32 `json:"xp"`
+	Uid   string      `json:"uid"`
+	Coins pgtype.Int4 `json:"coins"`
+	Xp    pgtype.Int4 `json:"xp"`
 }
 
 func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) error {
-	_, err := q.db.ExecContext(ctx, createWallet, arg.Uid, arg.Coins, arg.Xp)
+	_, err := q.db.Exec(ctx, createWallet, arg.Uid, arg.Coins, arg.Xp)
 	return err
 }
 
@@ -36,7 +37,7 @@ WHERE uid = $1
 `
 
 func (q *Queries) GetWalletByPlayerId(ctx context.Context, uid string) (Wallet, error) {
-	row := q.db.QueryRowContext(ctx, getWalletByPlayerId, uid)
+	row := q.db.QueryRow(ctx, getWalletByPlayerId, uid)
 	var i Wallet
 	err := row.Scan(&i.Uid, &i.Coins, &i.Xp)
 	return i, err
@@ -50,13 +51,13 @@ WHERE uid = $1
 `
 
 type UpdateWalletCoinsAndXpRewardParams struct {
-	Uid   string        `json:"uid"`
-	Coins sql.NullInt32 `json:"coins"`
-	Xp    sql.NullInt32 `json:"xp"`
+	Uid   string      `json:"uid"`
+	Coins pgtype.Int4 `json:"coins"`
+	Xp    pgtype.Int4 `json:"xp"`
 }
 
 func (q *Queries) UpdateWalletCoinsAndXpReward(ctx context.Context, arg UpdateWalletCoinsAndXpRewardParams) error {
-	_, err := q.db.ExecContext(ctx, updateWalletCoinsAndXpReward, arg.Uid, arg.Coins, arg.Xp)
+	_, err := q.db.Exec(ctx, updateWalletCoinsAndXpReward, arg.Uid, arg.Coins, arg.Xp)
 	return err
 }
 
@@ -67,12 +68,12 @@ WHERE uid = $1
 `
 
 type UpdateWalletReduceCoinsParams struct {
-	Uid   string        `json:"uid"`
-	Coins sql.NullInt32 `json:"coins"`
+	Uid   string      `json:"uid"`
+	Coins pgtype.Int4 `json:"coins"`
 }
 
 func (q *Queries) UpdateWalletReduceCoins(ctx context.Context, arg UpdateWalletReduceCoinsParams) error {
-	_, err := q.db.ExecContext(ctx, updateWalletReduceCoins, arg.Uid, arg.Coins)
+	_, err := q.db.Exec(ctx, updateWalletReduceCoins, arg.Uid, arg.Coins)
 	return err
 }
 
@@ -83,11 +84,11 @@ WHERE uid = $1
 `
 
 type UpdateWalletXpRewardParams struct {
-	Uid string        `json:"uid"`
-	Xp  sql.NullInt32 `json:"xp"`
+	Uid string      `json:"uid"`
+	Xp  pgtype.Int4 `json:"xp"`
 }
 
 func (q *Queries) UpdateWalletXpReward(ctx context.Context, arg UpdateWalletXpRewardParams) error {
-	_, err := q.db.ExecContext(ctx, updateWalletXpReward, arg.Uid, arg.Xp)
+	_, err := q.db.Exec(ctx, updateWalletXpReward, arg.Uid, arg.Xp)
 	return err
 }

@@ -2,10 +2,10 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
@@ -19,7 +19,7 @@ func CreatePlayer(ctx context.Context, q *db.Queries, uid string, name string, e
 		Uid:   uid,
 		Name:  name,
 		Email: email,
-		ProfilePic: sql.NullString{
+		ProfilePic: pgtype.Text{
 			String: profilePic,
 			Valid:  profilePic != "",
 		},

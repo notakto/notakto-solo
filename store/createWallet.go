@@ -2,10 +2,10 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rakshitg600/notakto-solo/config"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
@@ -18,11 +18,11 @@ func CreateWallet(ctx context.Context, q *db.Queries, uid string) (
 	defer cancel()
 	err = q.CreateWallet(ctx, db.CreateWalletParams{
 		Uid: uid,
-		Coins: sql.NullInt32{
+		Coins: pgtype.Int4{
 			Int32: config.Wallet.InitialCoins,
 			Valid: true,
 		},
-		Xp: sql.NullInt32{
+		Xp: pgtype.Int4{
 			Int32: config.Wallet.InitialXP,
 			Valid: true,
 		},
