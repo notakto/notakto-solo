@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
@@ -15,8 +17,19 @@ func EnsureQuitGame(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	success bool,
 	err error,
 ) {
+	queries := db.New(pool)
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.Serializable,
+		AccessMode: pgx.ReadWrite,
+	})
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := queries.WithTx(tx)
 	// STEP 1: Validate sessionId
-	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
+	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
 	if err != nil {
 		return false, err
 	}
@@ -28,8 +41,11 @@ func EnsureQuitGame(ctx context.Context, pool *pgxpool.Pool, uid string, session
 		return true, nil
 	}
 	// STEP 3: Update gameover to true
-	err = store.QuitGameSession(ctx, q, sessionID)
+	err = store.QuitGameSession(ctx, qtx, sessionID)
 	if err != nil {
+		return false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return false, err
 	}
 	return true, nil

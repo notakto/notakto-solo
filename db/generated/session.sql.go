@@ -83,6 +83,55 @@ func (q *Queries) GetLatestSessionStateByPlayerId(ctx context.Context, uid strin
 	return i, err
 }
 
+const getLatestSessionStateByPlayerIdWithLock = `-- name: GetLatestSessionStateByPlayerIdWithLock :one
+SELECT 
+    s.session_id,
+    s.uid,
+    s.created_at,
+    s.gameover,
+    s.winner,
+    s.board_size,
+    s.number_of_boards,
+    s.difficulty,
+    ss.boards
+FROM session s
+JOIN sessionstate ss
+    ON s.session_id = ss.session_id
+WHERE s.uid = $1
+ORDER BY s.created_at DESC
+LIMIT 1
+FOR UPDATE
+`
+
+type GetLatestSessionStateByPlayerIdWithLockRow struct {
+	SessionID      string           `json:"session_id"`
+	Uid            string           `json:"uid"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	Gameover       pgtype.Bool      `json:"gameover"`
+	Winner         pgtype.Bool      `json:"winner"`
+	BoardSize      pgtype.Int4      `json:"board_size"`
+	NumberOfBoards pgtype.Int4      `json:"number_of_boards"`
+	Difficulty     pgtype.Int4      `json:"difficulty"`
+	Boards         []int32          `json:"boards"`
+}
+
+func (q *Queries) GetLatestSessionStateByPlayerIdWithLock(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdWithLockRow, error) {
+	row := q.db.QueryRow(ctx, getLatestSessionStateByPlayerIdWithLock, uid)
+	var i GetLatestSessionStateByPlayerIdWithLockRow
+	err := row.Scan(
+		&i.SessionID,
+		&i.Uid,
+		&i.CreatedAt,
+		&i.Gameover,
+		&i.Winner,
+		&i.BoardSize,
+		&i.NumberOfBoards,
+		&i.Difficulty,
+		&i.Boards,
+	)
+	return i, err
+}
+
 const quitGameSession = `-- name: QuitGameSession :exec
 UPDATE session
 SET gameover = true,

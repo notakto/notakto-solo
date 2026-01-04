@@ -47,7 +47,7 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 
 	qtx := queries.WithTx(tx)
 	// STEP 1: Validate sessionId
-	existing, err := store.GetLatestSessionStateByPlayerId(ctx, qtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
 	if err != nil {
 		return nil, false, false, 0, 0, err
 	}

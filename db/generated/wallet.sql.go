@@ -43,6 +43,23 @@ func (q *Queries) GetWalletByPlayerId(ctx context.Context, uid string) (Wallet, 
 	return i, err
 }
 
+const getWalletByPlayerIdWithLock = `-- name: GetWalletByPlayerIdWithLock :one
+SELECT
+    uid,
+    coins,
+    xp
+FROM wallet
+WHERE uid = $1
+FOR UPDATE
+`
+
+func (q *Queries) GetWalletByPlayerIdWithLock(ctx context.Context, uid string) (Wallet, error) {
+	row := q.db.QueryRow(ctx, getWalletByPlayerIdWithLock, uid)
+	var i Wallet
+	err := row.Scan(&i.Uid, &i.Coins, &i.Xp)
+	return i, err
+}
+
 const updateWalletCoinsAndXpReward = `-- name: UpdateWalletCoinsAndXpReward :exec
 UPDATE wallet
 SET coins = coins+$2,

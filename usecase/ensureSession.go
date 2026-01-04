@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
@@ -25,8 +27,19 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, uid string, numberOf
 	createdAt time.Time,
 	err error,
 ) {
+	queries := db.New(pool)
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.Serializable,
+		AccessMode: pgx.ReadWrite,
+	})
+	if err != nil {
+		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := queries.WithTx(tx)
 	// STEP 1: Try existing session
-	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
+	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
 	if err == nil && existing.SessionID != "" {
 		isGameOver := existing.Gameover.Valid && existing.Gameover.Bool
 		if !isGameOver {
@@ -72,15 +85,17 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, uid string, numberOf
 
 	// a) Insert into session
 
-	if err = store.CreateSession(ctx, q, uid, boardSize, numberOfBoards, difficulty, newSessionID); err != nil {
+	if err = store.CreateSession(ctx, qtx, uid, boardSize, numberOfBoards, difficulty, newSessionID); err != nil {
 		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
 	}
 
 	// b) Insert initial session state
-	if err = store.CreateInitialSessionState(ctx, q, newSessionID); err != nil {
+	if err = store.CreateInitialSessionState(ctx, qtx, newSessionID); err != nil {
 		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
 	}
-
+	if err := tx.Commit(ctx); err != nil {
+		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
+	}
 	// STEP 3: Return newly created session state values
 	return newSessionID, uid, []int32{}, false, boardSize, numberOfBoards, difficulty, false, time.Now(), nil
 }

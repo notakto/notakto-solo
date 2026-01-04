@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
 )
@@ -27,8 +29,19 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	xpRewarded int32,
 	err error,
 ) {
+	queries := db.New(pool)
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.Serializable,
+		AccessMode: pgx.ReadWrite,
+	})
+	if err != nil {
+		return nil, false, false, 0, 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := queries.WithTx(tx)
 	// STEP 1: Validate sessionId
-	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
+	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
 	if err != nil {
 		return nil, false, false, 0, 0, err
 	}
@@ -53,17 +66,19 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	}
 
 	// STEP 4: Check wallet for sufficient coins
-	coins, _, err := EnsureGetWallet(ctx, q, uid)
+	wallet, err := store.GetWalletByPlayerIdWithLock(ctx, qtx, uid)
 	if err != nil {
 		return nil, false, false, 0, 0, err
 	}
-	if coins < 200 {
+	if wallet.Coins.Valid == false {
+		return nil, false, false, 0, 0, errors.New("invalid wallet response from db")
+	}
+	if wallet.Coins.Int32 < 100 {
 		return nil, false, false, 0, 0, errors.New("insufficient coins to skip move")
 	}
-
 	// STEP 5: Deduct coins
 	const skipMoveCost = 200
-	err = store.UpdateWalletReduceCoins(ctx, q, uid, skipMoveCost)
+	err = store.UpdateWalletReduceCoins(ctx, qtx, uid, skipMoveCost)
 	if err != nil {
 		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 	}
@@ -91,7 +106,7 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 		existing.Winner = pgtype.Bool{Bool: false, Valid: false}
 	}
 	// Update session state after AI move
-	err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)
+	err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards)
 	if err != nil {
 		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 	}
@@ -105,16 +120,19 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	}
 	// If gameover after AI move, update session
 	if existing.Gameover.Valid && existing.Gameover.Bool {
-		err = store.UpdateSessionAfterGameover(ctx, q, sessionID, existing.Winner)
+		err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner)
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
 		coinsReward, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
-		err = store.UpdateWalletCoinsAndXpReward(ctx, q, uid, coinsReward, xpReward)
+		err = store.UpdateWalletCoinsAndXpReward(ctx, qtx, uid, coinsReward, xpReward)
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
 		return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, coinsReward, xpReward, nil
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, false, false, 0, 0, err
 	}
 	return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Bool, 0, 0, nil
 }

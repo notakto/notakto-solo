@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
 )
@@ -19,8 +21,19 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	boards []int32,
 	err error,
 ) {
+	queries := db.New(pool)
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.Serializable,
+		AccessMode: pgx.ReadWrite,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := queries.WithTx(tx)
 	// STEP 1: Validate sessionId
-	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
+	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -45,11 +58,14 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	}
 
 	// STEP 4: Check wallet for sufficient coins
-	coins, _, err := EnsureGetWallet(ctx, q, uid)
+	wallet, err := store.GetWalletByPlayerIdWithLock(ctx, qtx, uid)
 	if err != nil {
 		return nil, err
 	}
-	if coins < 100 {
+	if wallet.Coins.Valid == false {
+		return nil, errors.New("invalid wallet response from db")
+	}
+	if wallet.Coins.Int32 < 100 {
 		return nil, errors.New("insufficient coins to undo move")
 	}
 
@@ -60,7 +76,7 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 
 	// STEP 6: Deduct coins
 	const undoMoveCost = 100
-	err = store.UpdateWalletReduceCoins(ctx, q, uid, undoMoveCost)
+	err = store.UpdateWalletReduceCoins(ctx, qtx, uid, undoMoveCost)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +84,11 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	// STEP 7: Pop last two elements (player move + AI move)
 	existing.Boards = existing.Boards[:len(existing.Boards)-2]
 	// Update session state after AI move
-	err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)
+	err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards)
 	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 	return existing.Boards, nil
