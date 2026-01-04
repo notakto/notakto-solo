@@ -22,7 +22,7 @@ func (h *Handler) GetWalletHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 	log.Printf("GetWalletHandler called for uid: %s", uid)
-	coins, xp, err := usecase.EnsureGetWallet(c.Request().Context(), h.Queries, uid)
+	coins, xp, err := usecase.EnsureGetWallet(c.Request().Context(), h.Pool, uid)
 	if err != nil {
 		c.Logger().Errorf("EnsureGetWallet failed: %v", err)
 		return c.JSON(http.StatusOK, GetWalletResponse{

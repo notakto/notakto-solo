@@ -15,8 +15,6 @@ func GetWalletByPlayerId(ctx context.Context, q *db.Queries, uid string) (
 	err error,
 ) {
 	start := time.Now()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
 	wallet, err = q.GetWalletByPlayerId(ctx, uid)
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls

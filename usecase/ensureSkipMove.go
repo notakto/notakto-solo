@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
 )
@@ -19,7 +19,7 @@ import (
 // game it marks the session as finished and credits coins and XP to the player's wallet.
 // Errors are returned for session mismatches or expirations, insufficient coins, failure to find an
 // AI move, and any database operation failures.
-func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID string) (
+func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, sessionID string) (
 	boards []int32,
 	gameOver bool,
 	winner bool,
