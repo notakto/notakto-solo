@@ -27,7 +27,14 @@ import (
 //   - coinsRewarded: coins awarded to the player as part of the game-over rewards, 0 if none or game not ended.
 //   - xpRewarded: XP awarded to the player as part of the game-over rewards, 0 if none or game not ended.
 //   - err: non-nil when validation, DB updates, or AI move resolution fail.
-func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, sessionID string, boardIndex int32, cellIndex int32) (
+func EnsureMakeMove(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	uid string,
+	sessionID string,
+	boardIndex int32,
+	cellIndex int32,
+) (
 	boards []int32,
 	gameOver bool,
 	winner bool,
