@@ -18,7 +18,7 @@ func GetWalletByPlayerIdWithLock(ctx context.Context, q *db.Queries, uid string)
 	wallet, err = q.GetWalletByPlayerIdWithLock(ctx, uid)
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls
-		log.Printf("GetWalletByPlayerId took %v, err: %v", time.Since(start), err)
+		log.Printf("GetWalletByPlayerIdWithLock took %v, err: %v", time.Since(start), err)
 	}
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
