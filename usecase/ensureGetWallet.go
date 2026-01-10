@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/store"
 )
@@ -12,12 +13,13 @@ import (
 //
 // It enforces a 3-second deadline for the database call. Returns an error if the query fails
 // or if the wallet's coins or XP fields are NULL/invalid.
-func EnsureGetWallet(ctx context.Context, q *db.Queries, uid string) (
+func EnsureGetWallet(ctx context.Context, pool *pgxpool.Pool, uid string) (
 	coins int32,
 	xp int32,
 	err error,
 ) {
-	wallet, err := store.GetWalletByPlayerId(ctx, q, uid)
+	queries := db.New(pool)
+	wallet, err := store.GetWalletByPlayerId(ctx, queries, uid)
 	if err != nil {
 		return 0, 0, err
 	}

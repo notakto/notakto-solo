@@ -14,8 +14,10 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateWallet(ctx context.Context, arg CreateWalletParams) error
 	GetLatestSessionStateByPlayerId(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdRow, error)
+	GetLatestSessionStateByPlayerIdWithLock(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdWithLockRow, error)
 	GetPlayerById(ctx context.Context, uid string) (Player, error)
 	GetWalletByPlayerId(ctx context.Context, uid string) (Wallet, error)
+	GetWalletByPlayerIdWithLock(ctx context.Context, uid string) (Wallet, error)
 	QuitGameSession(ctx context.Context, sessionID string) error
 	UpdatePlayerName(ctx context.Context, arg UpdatePlayerNameParams) (Player, error)
 	UpdateSessionAfterGameover(ctx context.Context, arg UpdateSessionAfterGameoverParams) error

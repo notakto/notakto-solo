@@ -34,7 +34,7 @@ func (h *Handler) SkipMoveHandler(c echo.Context) error {
 	}
 	boards, gameOver, winner, coinsRewarded, xpRewarded, err := usecase.EnsureSkipMove(
 		c.Request().Context(),
-		h.Queries,
+		h.Pool,
 		uid,
 		req.SessionID,
 	)

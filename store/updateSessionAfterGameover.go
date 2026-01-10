@@ -13,8 +13,6 @@ func UpdateSessionAfterGameover(ctx context.Context, q *db.Queries, sessionID st
 	err error,
 ) {
 	start := time.Now()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
 	err = q.UpdateSessionAfterGameover(ctx, db.UpdateSessionAfterGameoverParams{
 		SessionID: sessionID,
 		Winner:    winner,

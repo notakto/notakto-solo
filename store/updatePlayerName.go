@@ -13,8 +13,6 @@ func UpdatePlayerName(ctx context.Context, q *db.Queries, uid string, name strin
 	err error,
 ) {
 	start := time.Now()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
 	player, err = q.UpdatePlayerName(ctx, db.UpdatePlayerNameParams{
 		Uid:  uid,
 		Name: name,

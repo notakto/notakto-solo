@@ -37,7 +37,7 @@ func (h *Handler) MakeMoveHandler(c echo.Context) error {
 	}
 	boards, gameOver, winner, coinsRewarded, xpRewarded, err := usecase.EnsureMakeMove(
 		c.Request().Context(),
-		h.Queries,
+		h.Pool,
 		uid,
 		req.SessionID,
 		req.BoardIndex,

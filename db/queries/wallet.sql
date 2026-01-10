@@ -25,3 +25,12 @@ WHERE uid = $1;
 UPDATE wallet
 SET coins = coins-$2
 WHERE uid = $1;
+
+-- name: GetWalletByPlayerIdWithLock :one
+SELECT
+    uid,
+    coins,
+    xp
+FROM wallet
+WHERE uid = $1
+FOR UPDATE;

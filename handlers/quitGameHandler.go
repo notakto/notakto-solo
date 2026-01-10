@@ -28,7 +28,7 @@ func (h *Handler) QuitGameHandler(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-	success, err := usecase.EnsureQuitGame(c.Request().Context(), h.Queries, uid, req.SessionID)
+	success, err := usecase.EnsureQuitGame(c.Request().Context(), h.Pool, uid, req.SessionID)
 	if err != nil {
 		c.Logger().Errorf("EnsureQuitGame failed: %v", err)
 		return c.JSON(http.StatusOK, QuitGameResponse{
