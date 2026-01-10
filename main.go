@@ -14,6 +14,8 @@ import (
 
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/rakshitg600/notakto-solo/config"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/handlers"
 	appMiddleware "github.com/rakshitg600/notakto-solo/middleware"
 	"github.com/rakshitg600/notakto-solo/routes"
 )
@@ -55,7 +57,10 @@ func main() {
 		log.Fatal("failed to connect to database:", err)
 	}
 
-	routes.SetupRoutes(e, pool)
+	queries := db.New(pool)
+	handler := handlers.NewHandler(queries)
+
+	routes.RegisterRoutes(e, handler)
 	port := config.MustGetEnv("PORT")
 	serverErr := make(chan error, 1)
 	go func() {

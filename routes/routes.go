@@ -1,16 +1,11 @@
 package routes
 
 import (
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/rakshitg600/notakto-solo/handlers"
 	"github.com/rakshitg600/notakto-solo/middleware"
 )
 
-func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool) {
-	handler := handlers.NewHandler(pool)
-	RegisterRoutes(e, handler)
-}
 func RegisterRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.POST("/v1/create-game", h.CreateGameHandler, middleware.FirebaseAuthMiddleware)
 	e.POST("/v1/sign-in", h.SignInHandler, middleware.FirebaseAuthMiddleware)

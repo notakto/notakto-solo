@@ -20,6 +20,8 @@ func CreateSession(
 	err error,
 ) {
 	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	err = q.CreateSession(ctx, db.CreateSessionParams{
 		SessionID:      newSessionID,
 		Uid:            uid,

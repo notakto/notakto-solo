@@ -12,6 +12,8 @@ func UpdateSessionState(ctx context.Context, q *db.Queries, sessionID string, bo
 	err error,
 ) {
 	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	err = q.UpdateSessionState(ctx, db.UpdateSessionStateParams{
 		SessionID: sessionID,
 		Boards:    boards,

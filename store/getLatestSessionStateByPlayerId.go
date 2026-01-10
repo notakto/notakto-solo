@@ -15,6 +15,8 @@ func GetLatestSessionStateByPlayerId(ctx context.Context, q *db.Queries, uid str
 	err error,
 ) {
 	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	latestSessionState, err = q.GetLatestSessionStateByPlayerId(ctx, uid)
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls

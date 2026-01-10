@@ -14,6 +14,8 @@ func CreateWallet(ctx context.Context, q *db.Queries, uid string) (
 	err error,
 ) {
 	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	err = q.CreateWallet(ctx, db.CreateWalletParams{
 		Uid: uid,
 		Coins: pgtype.Int4{

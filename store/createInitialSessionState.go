@@ -15,6 +15,8 @@ func CreateInitialSessionState(
 	err error,
 ) {
 	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	err = q.CreateInitialSessionState(ctx, db.CreateInitialSessionStateParams{
 		SessionID: newSessionID,
 		Boards:    []int32{}, // empty initial boards

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/store"
 )
@@ -19,10 +18,9 @@ import (
 // errors are propagated; an empty player row from the database is returned as an explicit error.
 //
 // It returns the profile picture URL, name, email, `true` if a new player was created, `false` otherwise, and any error.
-func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, uid string, idToken string) (profilePic string, name string, email string, isNew bool, err error) {
+func EnsureLogin(ctx context.Context, q *db.Queries, uid string, idToken string) (profilePic string, name string, email string, isNew bool, err error) {
 	// STEP 1: Try existing session
-	queries := db.New(pool)
-	existing, err := store.GetPlayerById(ctx, queries, uid)
+	existing, err := store.GetPlayerById(ctx, q, uid)
 	if err == nil && existing.Uid != "" {
 		name = existing.Name
 		email = existing.Email
@@ -44,27 +42,15 @@ func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, uid string, idToken st
 	if err != nil {
 		return "", "", "", true, err
 	}
-	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
-		IsoLevel:   pgx.Serializable,
-		AccessMode: pgx.ReadWrite,
-	})
-	if err != nil {
-		return "", "", "", true, err
-	}
-	defer tx.Rollback(ctx)
 
-	qtx := queries.WithTx(tx)
 	// STEP 3: Create new player
-	err = store.CreatePlayer(ctx, qtx, uid, name, email, profilePic)
+	err = store.CreatePlayer(ctx, q, uid, name, email, profilePic)
 	if err != nil {
 		return "", "", "", true, err
 	}
 	// STEP 4: Create Wallet for player
-	err = store.CreateWallet(ctx, qtx, uid)
+	err = store.CreateWallet(ctx, q, uid)
 	if err != nil {
-		return "", "", "", true, err
-	}
-	if err := tx.Commit(ctx); err != nil {
 		return "", "", "", true, err
 	}
 	// STEP 5: Return values
