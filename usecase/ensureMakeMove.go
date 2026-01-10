@@ -27,14 +27,7 @@ import (
 //   - coinsRewarded: coins awarded to the player as part of the game-over rewards, 0 if none or game not ended.
 //   - xpRewarded: XP awarded to the player as part of the game-over rewards, 0 if none or game not ended.
 //   - err: non-nil when validation, DB updates, or AI move resolution fail.
-func EnsureMakeMove(
-	ctx context.Context,
-	pool *pgxpool.Pool,
-	uid string,
-	sessionID string,
-	boardIndex int32,
-	cellIndex int32,
-) (
+func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, sessionID string, boardIndex int32, cellIndex int32) (
 	boards []int32,
 	gameOver bool,
 	winner bool,
@@ -53,6 +46,7 @@ func EnsureMakeMove(
 	defer tx.Rollback(ctx)
 
 	qtx := queries.WithTx(tx)
+
 	// STEP 1: Validate sessionId
 	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
 	if err != nil {
@@ -101,96 +95,82 @@ func EnsureMakeMove(
 	} else if existing.Gameover.Valid && !existing.Gameover.Bool {
 		existing.Winner = pgtype.Bool{Bool: false, Valid: false}
 	}
-	// STEP 9: persist move
+	// STEP 9: Update DB state || AI Makes move and Update DB state
+	// 9.1 Update session state in db
 	err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards)
 	if err != nil {
 		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 	}
-
-	// STEP 10: If gameover after player move
-	if existing.Gameover.Bool {
-		if err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner); err != nil {
-			return nil, true, existing.Winner.Bool, 0, 0, err
+	// 9.2 If gameover update session and rewards
+	if existing.Gameover.Valid && existing.Gameover.Bool {
+		err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner)
+		if err != nil {
+			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
+		_, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
 
-		_, xpReward := logic.CalculateRewards(
-			existing.NumberOfBoards.Int32,
-			existing.BoardSize.Int32,
-			existing.Difficulty.Int32,
-			false,
-		)
-
-		if err = store.UpdateWalletXpReward(ctx, qtx, uid, xpReward); err != nil {
-			return nil, true, existing.Winner.Bool, 0, 0, err
+		err = store.UpdateWalletXpReward(ctx, qtx, uid, xpReward)
+		if err != nil {
+			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
-
-		if err = tx.Commit(ctx); err != nil {
-			return nil, true, existing.Winner.Bool, 0, 0, err
+		if err := tx.Commit(ctx); err != nil {
+			return nil, false, false, 0, 0, err
 		}
-
-		return existing.Boards, true, false, 0, xpReward, nil
+		return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, xpReward, nil
 	}
-
-	// STEP 11: AI move
-	aiMoveIndex := logic.GetAIMove(
-		existing.Boards,
-		boardSize,
-		existing.NumberOfBoards.Int32,
-		existing.Difficulty.Int32,
-	)
-	if aiMoveIndex == -1 {
-		return existing.Boards, false, false, 0, 0, errors.New("AI could not find a valid move")
-	}
-
-	existing.Boards = append(existing.Boards, aiMoveIndex)
-
-	// STEP 12: Check gameover after AI move
-	existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
-	for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
-		if !logic.IsBoardDead(i, existing.Boards, boardSize) {
-			existing.Gameover = pgtype.Bool{Bool: false, Valid: true}
-			break
+	// 9.3 If not gameover, AI makes a move
+	if existing.Gameover.Valid && !existing.Gameover.Bool {
+		aiMoveIndex := logic.GetAIMove(existing.Boards, boardSize, existing.NumberOfBoards.Int32, existing.Difficulty.Int32)
+		if aiMoveIndex == -1 {
+			// No valid moves for AI - this shouldn't happen if game is not over
+			return existing.Boards, false, false, 0, 0, errors.New("AI could not find a valid move")
+		}
+		existing.Boards = append(existing.Boards, aiMoveIndex)
+		// Check for gameover after AI move
+		existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
+		for i := int32(0); i < existing.NumberOfBoards.Int32; i++ {
+			if !logic.IsBoardDead(i, existing.Boards, boardSize) {
+				existing.Gameover = pgtype.Bool{Bool: false, Valid: true}
+				break
+			}
+		}
+		if existing.Gameover.Valid && existing.Gameover.Bool {
+			existing.Winner = pgtype.Bool{Bool: true, Valid: true}
+		} else if existing.Gameover.Valid && !existing.Gameover.Bool {
+			existing.Winner = pgtype.Bool{Bool: false, Valid: false}
+		}
+		// Update session state after AI move
+		err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards)
+		if err != nil {
+			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+		}
+		if existing.Gameover.Valid && !existing.Gameover.Bool {
+			return existing.Boards,
+				false,
+				false,
+				0,
+				0,
+				nil
+		}
+		// If gameover after AI move, update session
+		if existing.Gameover.Valid && existing.Gameover.Bool {
+			err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner)
+			if err != nil {
+				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+			}
+			coinsReward, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
+			err = store.UpdateWalletCoinsAndXpReward(ctx, qtx, uid, coinsReward, xpReward)
+			if err != nil {
+				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+			}
+			if err := tx.Commit(ctx); err != nil {
+				return nil, false, false, 0, 0, err
+			}
+			return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, coinsReward, xpReward, nil
 		}
 	}
-	if existing.Gameover.Bool {
-		existing.Winner = pgtype.Bool{Bool: true, Valid: true}
-	} else {
-		existing.Winner = pgtype.Bool{Valid: false}
-	}
-
-	// STEP 13: Persist AI move
-	if err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards); err != nil {
-		return nil, existing.Gameover.Bool, existing.Winner.Bool, 0, 0, err
-	}
-
-	// STEP 14: If gameover after AI move
-	if existing.Gameover.Bool {
-		if err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner); err != nil {
-			return nil, true, existing.Winner.Bool, 0, 0, err
-		}
-
-		coinsReward, xpReward := logic.CalculateRewards(
-			existing.NumberOfBoards.Int32,
-			existing.BoardSize.Int32,
-			existing.Difficulty.Int32,
-			true,
-		)
-
-		if err = store.UpdateWalletCoinsAndXpReward(ctx, qtx, uid, coinsReward, xpReward); err != nil {
-			return nil, true, existing.Winner.Bool, 0, 0, err
-		}
-
-		if err = tx.Commit(ctx); err != nil {
-			return nil, true, existing.Winner.Bool, 0, 0, err
-		}
-
-		return existing.Boards, true, true, coinsReward, xpReward, nil
-	}
-
-	// STEP 15: Normal continue
-	if err = tx.Commit(ctx); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return nil, false, false, 0, 0, err
 	}
-
-	return existing.Boards, false, false, 0, 0, nil
+	return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, errors.New("unexpected behaviour")
 }

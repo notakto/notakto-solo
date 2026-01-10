@@ -28,7 +28,7 @@ func getValidMoves(boards []int32, boardSize, numberOfBoards int32) []int32 {
 	set := makeBoardSet(boards)
 	moves := []int32{}
 
-	for b := int32(0); b < numberOfBoards; b++ {
+	for b := range numberOfBoards {
 		if IsBoardDead(b, boards, boardSize) {
 			continue
 		}
@@ -75,7 +75,7 @@ func GetAIMove(boards []int32, boardSize int32, numberOfBoards int32, difficulty
 
 	// Count live boards
 	liveCount := int32(0)
-	for b := int32(0); b < numberOfBoards; b++ {
+	for b := range numberOfBoards {
 		if !IsBoardDead(b, boards, boardSize) {
 			liveCount++
 		}
