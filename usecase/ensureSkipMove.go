@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
@@ -21,7 +19,7 @@ import (
 // game it marks the session as finished and credits coins and XP to the player's wallet.
 // Errors are returned for session mismatches or expirations, insufficient coins, failure to find an
 // AI move, and any database operation failures.
-func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, sessionID string) (
+func EnsureSkipMove(ctx context.Context, q *db.Queries, uid string, sessionID string) (
 	boards []int32,
 	gameOver bool,
 	winner bool,
@@ -29,19 +27,8 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	xpRewarded int32,
 	err error,
 ) {
-	queries := db.New(pool)
-	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
-		IsoLevel:   pgx.Serializable,
-		AccessMode: pgx.ReadWrite,
-	})
-	if err != nil {
-		return nil, false, false, 0, 0, err
-	}
-	defer tx.Rollback(ctx)
-
-	qtx := queries.WithTx(tx)
 	// STEP 1: Validate sessionId
-	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
 	if err != nil {
 		return nil, false, false, 0, 0, err
 	}
@@ -66,20 +53,17 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	}
 
 	// STEP 4: Check wallet for sufficient coins
-	const skipMoveCost = 200
-	wallet, err := store.GetWalletByPlayerIdWithLock(ctx, qtx, uid)
+	coins, _, err := EnsureGetWallet(ctx, q, uid)
 	if err != nil {
 		return nil, false, false, 0, 0, err
 	}
-	if wallet.Coins.Valid == false || wallet.Xp.Valid == false {
-		return nil, false, false, 0, 0, errors.New("invalid wallet response from db")
-	}
-	if wallet.Coins.Int32 < skipMoveCost {
+	if coins < 200 {
 		return nil, false, false, 0, 0, errors.New("insufficient coins to skip move")
 	}
 
 	// STEP 5: Deduct coins
-	err = store.UpdateWalletReduceCoins(ctx, qtx, uid, skipMoveCost)
+	const skipMoveCost = 200
+	err = store.UpdateWalletReduceCoins(ctx, q, uid, skipMoveCost)
 	if err != nil {
 		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 	}
@@ -107,14 +91,11 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 		existing.Winner = pgtype.Bool{Bool: false, Valid: false}
 	}
 	// Update session state after AI move
-	err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards)
+	err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)
 	if err != nil {
 		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 	}
 	if existing.Gameover.Valid && !existing.Gameover.Bool {
-		if err := tx.Commit(ctx); err != nil {
-			return nil, false, false, 0, 0, err
-		}
 		return existing.Boards,
 			false,
 			false,
@@ -124,19 +105,16 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	}
 	// If gameover after AI move, update session
 	if existing.Gameover.Valid && existing.Gameover.Bool {
-		err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner)
+		err = store.UpdateSessionAfterGameover(ctx, q, sessionID, existing.Winner)
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
 		coinsReward, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
-		err = store.UpdateWalletCoinsAndXpReward(ctx, qtx, uid, coinsReward, xpReward)
+		err = store.UpdateWalletCoinsAndXpReward(ctx, q, uid, coinsReward, xpReward)
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
-		if err := tx.Commit(ctx); err != nil {
-			return nil, false, false, 0, 0, err
-		}
 		return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, coinsReward, xpReward, nil
 	}
-	return nil, false, false, 0, 0, errors.New("invalid gameover state obtained from db")
+	return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Bool, 0, 0, nil
 }

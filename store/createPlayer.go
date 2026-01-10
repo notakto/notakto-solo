@@ -13,6 +13,8 @@ func CreatePlayer(ctx context.Context, q *db.Queries, uid string, name string, e
 	err error,
 ) {
 	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	err = q.CreatePlayer(ctx, db.CreatePlayerParams{
 		Uid:   uid,
 		Name:  name,

@@ -13,6 +13,8 @@ func UpdateWalletXpReward(ctx context.Context, q *db.Queries, uid string, xpRewa
 	err error,
 ) {
 	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	err = q.UpdateWalletXpReward(ctx, db.UpdateWalletXpRewardParams{
 		Uid: uid,
 		Xp:  pgtype.Int4{Int32: xpReward, Valid: true},

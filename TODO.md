@@ -37,4 +37,3 @@
 37. retry db/tx on fail []
 38. refactor store package with create, read, update and delete []
 39. uid mismatch bug and read uid from context always and never as prop []
-40. replace -1 as placeholder for skip move with something good []

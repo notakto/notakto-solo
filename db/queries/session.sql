@@ -37,22 +37,3 @@ UPDATE session
 SET gameover = true,
     winner = false
 WHERE session_id = $1;
-
--- name: GetLatestSessionStateByPlayerIdWithLock :one
-SELECT 
-    s.session_id,
-    s.uid,
-    s.created_at,
-    s.gameover,
-    s.winner,
-    s.board_size,
-    s.number_of_boards,
-    s.difficulty,
-    ss.boards
-FROM session s
-JOIN sessionstate ss
-    ON s.session_id = ss.session_id
-WHERE s.uid = $1
-ORDER BY s.created_at DESC
-LIMIT 1
-FOR UPDATE;

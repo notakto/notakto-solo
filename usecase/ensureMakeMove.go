@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
@@ -27,7 +25,7 @@ import (
 //   - coinsRewarded: coins awarded to the player as part of the game-over rewards, 0 if none or game not ended.
 //   - xpRewarded: XP awarded to the player as part of the game-over rewards, 0 if none or game not ended.
 //   - err: non-nil when validation, DB updates, or AI move resolution fail.
-func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, sessionID string, boardIndex int32, cellIndex int32) (
+func EnsureMakeMove(ctx context.Context, q *db.Queries, uid string, sessionID string, boardIndex int32, cellIndex int32) (
 	boards []int32,
 	gameOver bool,
 	winner bool,
@@ -35,20 +33,8 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	xpRewarded int32,
 	err error,
 ) {
-	queries := db.New(pool)
-	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
-		IsoLevel:   pgx.Serializable,
-		AccessMode: pgx.ReadWrite,
-	})
-	if err != nil {
-		return nil, false, false, 0, 0, err
-	}
-	defer tx.Rollback(ctx)
-
-	qtx := queries.WithTx(tx)
-
 	// STEP 1: Validate sessionId
-	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerId(ctx, q, uid)
 	if err != nil {
 		return nil, false, false, 0, 0, err
 	}
@@ -97,24 +83,21 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	}
 	// STEP 9: Update DB state || AI Makes move and Update DB state
 	// 9.1 Update session state in db
-	err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards)
+	err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)
 	if err != nil {
 		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 	}
 	// 9.2 If gameover update session and rewards
 	if existing.Gameover.Valid && existing.Gameover.Bool {
-		err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner)
+		err = store.UpdateSessionAfterGameover(ctx, q, sessionID, existing.Winner)
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
 		_, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
 
-		err = store.UpdateWalletXpReward(ctx, qtx, uid, xpReward)
+		err = store.UpdateWalletXpReward(ctx, q, uid, xpReward)
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
-		}
-		if err := tx.Commit(ctx); err != nil {
-			return nil, false, false, 0, 0, err
 		}
 		return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, xpReward, nil
 	}
@@ -140,7 +123,7 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 			existing.Winner = pgtype.Bool{Bool: false, Valid: false}
 		}
 		// Update session state after AI move
-		err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards)
+		err = store.UpdateSessionState(ctx, q, sessionID, existing.Boards)
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
@@ -154,23 +137,17 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 		}
 		// If gameover after AI move, update session
 		if existing.Gameover.Valid && existing.Gameover.Bool {
-			err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner)
+			err = store.UpdateSessionAfterGameover(ctx, q, sessionID, existing.Winner)
 			if err != nil {
 				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 			}
 			coinsReward, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
-			err = store.UpdateWalletCoinsAndXpReward(ctx, qtx, uid, coinsReward, xpReward)
+			err = store.UpdateWalletCoinsAndXpReward(ctx, q, uid, coinsReward, xpReward)
 			if err != nil {
 				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 			}
-			if err := tx.Commit(ctx); err != nil {
-				return nil, false, false, 0, 0, err
-			}
 			return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, coinsReward, xpReward, nil
 		}
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return nil, false, false, 0, 0, err
 	}
 	return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, errors.New("unexpected behaviour")
 }

@@ -54,7 +54,7 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 	// ✅✅ Logic: get typed values from EnsureSession
 	sessionID, uidOut, boards, winner, boardSize, numberOfBoards, difficulty, gameover, createdAt, err := usecase.EnsureSession(
 		c.Request().Context(),
-		h.Pool,
+		h.Queries,
 		uid,
 		req.NumberOfBoards,
 		req.BoardSize,
