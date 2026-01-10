@@ -145,6 +145,9 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
 		if existing.Gameover.Valid && !existing.Gameover.Bool {
+			if err := tx.Commit(ctx); err != nil {
+				return nil, false, false, 0, 0, err
+			}
 			return existing.Boards,
 				false,
 				false,
