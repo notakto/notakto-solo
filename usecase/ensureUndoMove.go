@@ -67,7 +67,7 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 		return nil, errors.New("invalid wallet response from db")
 	}
 	if wallet.Coins.Int32 < undoMoveCost {
-		return nil, errors.New("insufficient coins to skip move")
+		return nil, errors.New("insufficient coins to undo move")
 	}
 	// STEP 5: Verify there are moves to undo
 	if len(existing.Boards) < 2 {
