@@ -4,19 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
-
-type Handler struct {
-	Pool *pgxpool.Pool
-}
-
-func NewHandler(pool *pgxpool.Pool) *Handler {
-	return &Handler{Pool: pool}
-}
 
 type SignInResponse struct {
 	Uid        string `json:"uid"`
