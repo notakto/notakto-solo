@@ -10,8 +10,6 @@ import (
 )
 
 // EnsureGetWallet retrieves the wallet for the given player ID and returns its coins and XP.
-//
-// It enforces a 3-second deadline for the database call. Returns an error if the query fails
 // or if the wallet's coins or XP fields are NULL/invalid.
 func EnsureGetWallet(ctx context.Context, pool *pgxpool.Pool, uid string) (
 	coins int32,

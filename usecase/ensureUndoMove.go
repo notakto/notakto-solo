@@ -87,5 +87,8 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	if err != nil {
 		return nil, err
 	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
 	return existing.Boards, nil
 }

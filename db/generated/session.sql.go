@@ -100,7 +100,7 @@ JOIN sessionstate ss
 WHERE s.uid = $1
 ORDER BY s.created_at DESC
 LIMIT 1
-FOR UPDATE
+FOR UPDATE OF s,ss
 `
 
 type GetLatestSessionStateByPlayerIdWithLockRow struct {
