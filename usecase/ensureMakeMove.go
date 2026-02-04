@@ -85,6 +85,9 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 		}
 	}
 	// STEP 7: Make Move
+	if len(existing.IsAiMove) != len(existing.Boards) {
+		return nil, false, false, 0, 0, errors.New("session move history out of sync")
+	}
 	existing.Boards = append(existing.Boards, moveIndex)
 	existing.IsAiMove = append(existing.IsAiMove, false) // Player move
 	// STEP 8: Check for gameover
