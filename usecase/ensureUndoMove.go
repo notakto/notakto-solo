@@ -40,6 +40,10 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	if existing.SessionID != sessionID {
 		return nil, errors.New("session expired or not found")
 	}
+	// Validate IsAiMove and Boards length alignment
+	if len(existing.IsAiMove) != len(existing.Boards) {
+		return nil, errors.New("session state corrupted: IsAiMove and Boards length mismatch")
+	}
 	// STEP 2: Validate gameover
 	if existing.Gameover.Valid && existing.Gameover.Bool {
 		return nil, errors.New("game is already over")
