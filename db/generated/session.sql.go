@@ -36,7 +36,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 }
 
 const getLatestSessionStateByPlayerId = `-- name: GetLatestSessionStateByPlayerId :one
-SELECT 
+SELECT
     s.session_id,
     s.uid,
     s.created_at,
@@ -45,7 +45,8 @@ SELECT
     s.board_size,
     s.number_of_boards,
     s.difficulty,
-    ss.boards
+    ss.boards,
+    ss.is_ai_move
 FROM session s
 JOIN sessionstate ss
     ON s.session_id = ss.session_id
@@ -64,6 +65,7 @@ type GetLatestSessionStateByPlayerIdRow struct {
 	NumberOfBoards pgtype.Int4      `json:"number_of_boards"`
 	Difficulty     pgtype.Int4      `json:"difficulty"`
 	Boards         []int32          `json:"boards"`
+	IsAiMove       []bool           `json:"is_ai_move"`
 }
 
 func (q *Queries) GetLatestSessionStateByPlayerId(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdRow, error) {
@@ -79,12 +81,13 @@ func (q *Queries) GetLatestSessionStateByPlayerId(ctx context.Context, uid strin
 		&i.NumberOfBoards,
 		&i.Difficulty,
 		&i.Boards,
+		&i.IsAiMove,
 	)
 	return i, err
 }
 
 const getLatestSessionStateByPlayerIdWithLock = `-- name: GetLatestSessionStateByPlayerIdWithLock :one
-SELECT 
+SELECT
     s.session_id,
     s.uid,
     s.created_at,
@@ -93,7 +96,8 @@ SELECT
     s.board_size,
     s.number_of_boards,
     s.difficulty,
-    ss.boards
+    ss.boards,
+    ss.is_ai_move
 FROM session s
 JOIN sessionstate ss
     ON s.session_id = ss.session_id
@@ -113,6 +117,7 @@ type GetLatestSessionStateByPlayerIdWithLockRow struct {
 	NumberOfBoards pgtype.Int4      `json:"number_of_boards"`
 	Difficulty     pgtype.Int4      `json:"difficulty"`
 	Boards         []int32          `json:"boards"`
+	IsAiMove       []bool           `json:"is_ai_move"`
 }
 
 func (q *Queries) GetLatestSessionStateByPlayerIdWithLock(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdWithLockRow, error) {
@@ -128,6 +133,7 @@ func (q *Queries) GetLatestSessionStateByPlayerIdWithLock(ctx context.Context, u
 		&i.NumberOfBoards,
 		&i.Difficulty,
 		&i.Boards,
+		&i.IsAiMove,
 	)
 	return i, err
 }

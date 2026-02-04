@@ -10,32 +10,34 @@ import (
 )
 
 const createInitialSessionState = `-- name: CreateInitialSessionState :exec
-INSERT INTO sessionstate (session_id, boards)
-VALUES ($1, $2)
+INSERT INTO sessionstate (session_id, boards, is_ai_move)
+VALUES ($1, $2, $3)
 `
 
 type CreateInitialSessionStateParams struct {
 	SessionID string  `json:"session_id"`
 	Boards    []int32 `json:"boards"`
+	IsAiMove  []bool  `json:"is_ai_move"`
 }
 
 func (q *Queries) CreateInitialSessionState(ctx context.Context, arg CreateInitialSessionStateParams) error {
-	_, err := q.db.Exec(ctx, createInitialSessionState, arg.SessionID, arg.Boards)
+	_, err := q.db.Exec(ctx, createInitialSessionState, arg.SessionID, arg.Boards, arg.IsAiMove)
 	return err
 }
 
 const updateSessionState = `-- name: UpdateSessionState :exec
 UPDATE sessionstate
-SET boards = $2
+SET boards = $2, is_ai_move = $3
 WHERE session_id = $1
 `
 
 type UpdateSessionStateParams struct {
 	SessionID string  `json:"session_id"`
 	Boards    []int32 `json:"boards"`
+	IsAiMove  []bool  `json:"is_ai_move"`
 }
 
 func (q *Queries) UpdateSessionState(ctx context.Context, arg UpdateSessionStateParams) error {
-	_, err := q.db.Exec(ctx, updateSessionState, arg.SessionID, arg.Boards)
+	_, err := q.db.Exec(ctx, updateSessionState, arg.SessionID, arg.Boards, arg.IsAiMove)
 	return err
 }

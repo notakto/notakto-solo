@@ -17,7 +17,8 @@ func CreateInitialSessionState(
 	start := time.Now()
 	err = q.CreateInitialSessionState(ctx, db.CreateInitialSessionStateParams{
 		SessionID: newSessionID,
-		Boards:    []int32{}, // empty initial boards
+		Boards:    []int32{},  // empty initial boards
+		IsAiMove:  []bool{},   // empty initial is_ai_move
 	})
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls

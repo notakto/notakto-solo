@@ -29,6 +29,7 @@ type Session struct {
 type Sessionstate struct {
 	SessionID string  `json:"session_id"`
 	Boards    []int32 `json:"boards"`
+	IsAiMove  []bool  `json:"is_ai_move"`
 }
 
 type Wallet struct {

@@ -1,5 +1,5 @@
 -- name: GetLatestSessionStateByPlayerId :one
-SELECT 
+SELECT
     s.session_id,
     s.uid,
     s.created_at,
@@ -8,7 +8,8 @@ SELECT
     s.board_size,
     s.number_of_boards,
     s.difficulty,
-    ss.boards
+    ss.boards,
+    ss.is_ai_move
 FROM session s
 JOIN sessionstate ss
     ON s.session_id = ss.session_id
@@ -39,7 +40,7 @@ SET gameover = true,
 WHERE session_id = $1;
 
 -- name: GetLatestSessionStateByPlayerIdWithLock :one
-SELECT 
+SELECT
     s.session_id,
     s.uid,
     s.created_at,
@@ -48,7 +49,8 @@ SELECT
     s.board_size,
     s.number_of_boards,
     s.difficulty,
-    ss.boards
+    ss.boards,
+    ss.is_ai_move
 FROM session s
 JOIN sessionstate ss
     ON s.session_id = ss.session_id
