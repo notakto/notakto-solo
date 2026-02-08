@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"firebase.google.com/go/v4/auth"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
@@ -19,7 +20,7 @@ import (
 // errors are propagated; an empty player row from the database is returned as an explicit error.
 //
 // It returns the profile picture URL, name, email, `true` if a new player was created, `false` otherwise, and any error.
-func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, uid string, idToken string) (profilePic string, name string, email string, isNew bool, err error) {
+func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Client, uid string) (profilePic string, name string, email string, isNew bool, err error) {
 	// STEP 1: Try existing session
 	queries := db.New(pool)
 	existing, err := store.GetPlayerById(ctx, queries, uid)
@@ -39,8 +40,8 @@ func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, uid string, idToken st
 	if err != nil && err != pgx.ErrNoRows {
 		return "", "", "", false, err
 	}
-	// STEP 2: Fetch from Firebase
-	uid, name, email, profilePic, err = VerifyFirebaseToken(ctx, idToken)
+	// STEP 2: Fetch profile from Firebase
+	name, email, profilePic, err = GetFirebaseUserProfile(ctx, authClient, uid)
 	if err != nil {
 		return "", "", "", true, err
 	}

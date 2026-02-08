@@ -9,8 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
+	"google.golang.org/api/option"
 
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/rakshitg600/notakto-solo/config"
@@ -22,6 +24,17 @@ import (
 func main() {
 	if err := config.InitEnv(); err != nil {
 		log.Fatal("Failed to load environment variables:", err)
+	}
+
+	// Initialize Firebase Admin SDK (ServiceAccount type avoids deprecated WithCredentialsJSON)
+	credJSON := config.MustGetEnv("FIREBASE_CREDENTIALS_JSON")
+	firebaseApp, err := firebase.NewApp(context.Background(), nil, option.WithAuthCredentialsJSON(option.ServiceAccount, []byte(credJSON)))
+	if err != nil {
+		log.Fatal("failed to initialize Firebase app:", err)
+	}
+	authClient, err := firebaseApp.Auth(context.Background())
+	if err != nil {
+		log.Fatal("failed to get Firebase Auth client:", err)
 	}
 
 	e := echo.New()
@@ -55,7 +68,7 @@ func main() {
 		log.Fatal("failed to connect to database:", err)
 	}
 
-	routes.SetupRoutes(e, pool)
+	routes.SetupRoutes(e, pool, authClient)
 	port := config.MustGetEnv("PORT")
 	serverErr := make(chan error, 1)
 	go func() {

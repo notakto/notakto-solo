@@ -23,16 +23,12 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 	if !ok || uid == "" {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
-	idToken, ok := c.Get("idToken").(string)
-	if !ok || idToken == "" {
-		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid token")
-	}
 	log.Printf("SignInHandler called for uid: %s", uid)
 	profilePic, name, email, isNew, err := usecase.EnsureLogin(
 		c.Request().Context(),
 		h.Pool,
+		h.AuthClient,
 		uid,
-		idToken,
 	)
 
 	if err != nil {

@@ -4,35 +4,34 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rakshitg600/notakto-solo/usecase"
-
+	"firebase.google.com/go/v4/auth"
 	"github.com/labstack/echo/v4"
+	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
-// FirebaseAuthMiddleware is an Echo middleware that validates a Firebase ID token supplied in the
-// request's Authorization header and injects authentication data into the request context.
-//
-// It responds with HTTP 401 when the Authorization header is missing, not prefixed with "Bearer ",
-// or when the token is invalid. On successful verification it sets "uid" (the Firebase UID) and
-// "idToken" in the Echo context and then calls the next handler.
-func FirebaseAuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		authHeader := c.Request().Header.Get("Authorization")
-		if authHeader == "" {
-			return echo.NewHTTPError(http.StatusUnauthorized, "Missing Authorization header")
-		}
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid Authorization header format")
-		}
+// FirebaseAuthMiddleware returns an Echo middleware that validates a Firebase ID
+// token from the Authorization header using the provided auth client.
+// On success it sets "uid" and "idToken" in the Echo context.
+func FirebaseAuthMiddleware(authClient *auth.Client) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader == "" {
+				return echo.NewHTTPError(http.StatusUnauthorized, "Missing Authorization header")
+			}
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid Authorization header format")
+			}
 
-		ctx := c.Request().Context()
-		idToken := authHeader[len("Bearer "):]
-		uid, _, _, _, err := usecase.VerifyFirebaseToken(ctx, idToken) //underscore here means ignore photo,name,email for middleware
-		if err != nil {
-			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
+			ctx := c.Request().Context()
+			idToken := authHeader[len("Bearer "):]
+			uid, err := usecase.VerifyFirebaseToken(ctx, authClient, idToken)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
+			}
+			c.Set("uid", uid)
+			c.Set("idToken", idToken)
+			return next(c)
 		}
-		c.Set("uid", uid)
-		c.Set("idToken", idToken)
-		return next(c)
 	}
 }

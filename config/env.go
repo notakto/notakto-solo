@@ -47,7 +47,7 @@ func InitEnv() error {
 			return
 		}
 
-		if err := loadResolved("FIREBASE_API_KEY"); err != nil {
+		if err := loadResolved("FIREBASE_CREDENTIALS_JSON"); err != nil {
 			initErr = err
 			return
 		}
@@ -62,8 +62,8 @@ func resolveKey(key string) string {
 		switch key {
 		case "DATABASE_URL":
 			return "DATABASE_DEV_URL"
-		case "FIREBASE_API_KEY":
-			return "FIREBASE_DEV_API_KEY"
+		case "FIREBASE_CREDENTIALS_JSON":
+			return "FIREBASE_DEV_CREDENTIALS_JSON"
 		}
 	}
 	return key
