@@ -33,7 +33,6 @@ func (h *Handler) UpdateNameHandler(c echo.Context) error {
 		log.Printf("UpdateNameHandler error for uid %s: %v", uid, err)
 		return echo.NewHTTPError(500, "internal server error")
 	}
-	}
 	// ✅ Return the updated name
 	log.Printf("Updated name for uid %s to %s", uid, updatedName)
 	return c.JSON(200, map[string]string{"name": updatedName})
