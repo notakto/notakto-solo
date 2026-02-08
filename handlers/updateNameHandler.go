@@ -30,7 +30,9 @@ func (h *Handler) UpdateNameHandler(c echo.Context) error {
 	// ✅ Update the name
 	updatedName, err := usecase.EnsureUpdateName(c.Request().Context(), h.Pool, req.Name)
 	if err != nil {
-		return echo.NewHTTPError(500, err.Error())
+		log.Printf("UpdateNameHandler error for uid %s: %v", uid, err)
+		return echo.NewHTTPError(500, "internal server error")
+	}
 	}
 	// ✅ Return the updated name
 	log.Printf("Updated name for uid %s to %s", uid, updatedName)
