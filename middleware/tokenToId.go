@@ -1,17 +1,20 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"firebase.google.com/go/v4/auth"
 	"github.com/labstack/echo/v4"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
 // FirebaseAuthMiddleware returns an Echo middleware that validates a Firebase ID
 // token from the Authorization header using the provided auth client.
-// On success it sets "uid" and "idToken" in the Echo context.
+// On success it injects the Firebase UID into the request's context.Context so
+// downstream handlers read uid via contextkey.UIDFromContext(c.Request().Context()).
 func FirebaseAuthMiddleware(authClient *auth.Client) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -29,8 +32,8 @@ func FirebaseAuthMiddleware(authClient *auth.Client) echo.MiddlewareFunc {
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
 			}
-			c.Set("uid", uid)
-			c.Set("idToken", idToken)
+			req := c.Request().WithContext(context.WithValue(ctx, contextkey.UID, uid))
+			c.SetRequest(req)
 			return next(c)
 		}
 	}

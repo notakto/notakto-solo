@@ -12,13 +12,6 @@ import (
 )
 
 // EnsureLogin authenticates a user and ensures a corresponding player record and wallet exist.
-//
-// If a player with the provided uid exists, it returns that player's profile picture URL (empty if none),
-// name, and email with the new-player flag set to `false`. If no player exists, it verifies the provided
-// ID token, creates a new player record and an associated wallet initialized from configuration, and returns
-// the profile picture URL, name, email with the new-player flag set to `true`. Database and verification
-// errors are propagated; an empty player row from the database is returned as an explicit error.
-//
 // It returns the profile picture URL, name, email, `true` if a new player was created, `false` otherwise, and any error.
 func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Client, uid string) (profilePic string, name string, email string, isNew bool, err error) {
 	// STEP 1: Try existing session

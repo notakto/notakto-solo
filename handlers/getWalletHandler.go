@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
@@ -17,7 +18,7 @@ type GetWalletResponse struct {
 }
 
 func (h *Handler) GetWalletHandler(c echo.Context) error {
-	uid, ok := c.Get("uid").(string)
+	uid, ok := contextkey.UIDFromContext(c.Request().Context())
 	if !ok || uid == "" {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}

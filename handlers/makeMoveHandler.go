@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
@@ -23,8 +25,7 @@ type MakeMoveResponse struct {
 }
 
 func (h *Handler) MakeMoveHandler(c echo.Context) error {
-	// ✅ Get UID
-	uid, ok := c.Get("uid").(string)
+	uid, ok := contextkey.UIDFromContext(c.Request().Context())
 	if !ok || uid == "" {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}

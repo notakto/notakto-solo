@@ -4,6 +4,8 @@ import (
 	"log"
 
 	"github.com/labstack/echo/v4"
+
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
@@ -12,8 +14,7 @@ type UpdatePlayerNameRequest struct {
 }
 
 func (h *Handler) UpdateNameHandler(c echo.Context) error {
-	// ✅ Get UID
-	uid, ok := c.Get("uid").(string)
+	uid, ok := contextkey.UIDFromContext(c.Request().Context())
 	if !ok || uid == "" {
 		return echo.NewHTTPError(401, "unauthorized: missing or invalid uid")
 	}
