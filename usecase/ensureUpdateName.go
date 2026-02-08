@@ -2,17 +2,21 @@ package usecase
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
-// EnsureUpdateName updates a player's name in the database and returns the updated name.
-// It returns the updated name on success or an error if the update fails.
-func EnsureUpdateName(ctx context.Context, pool *pgxpool.Pool, name string, uid string) (string, error) {
+func EnsureUpdateName(ctx context.Context, pool *pgxpool.Pool, name string) (string, error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return "", errors.New("missing or invalid uid in context")
+	}
 	queries := db.New(pool)
-	player, err := store.UpdatePlayerName(ctx, queries, uid, name)
+	player, err := store.UpdatePlayerName(ctx, queries, name)
 	if err != nil {
 		return "", err
 	}

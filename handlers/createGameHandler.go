@@ -55,7 +55,6 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 	sessionID, uidOut, boards, winner, boardSize, numberOfBoards, difficulty, gameover, createdAt, err := usecase.EnsureSession(
 		c.Request().Context(),
 		h.Pool,
-		uid,
 		req.NumberOfBoards,
 		req.BoardSize,
 		req.Difficulty,

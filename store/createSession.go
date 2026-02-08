@@ -2,23 +2,20 @@ package store
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 )
 
-func CreateSession(
-	ctx context.Context,
-	q *db.Queries,
-	uid string,
-	boardSize int32,
-	numberOfBoards int32,
-	difficulty int32,
-	newSessionID string) (
-	err error,
-) {
+func CreateSession(ctx context.Context, q *db.Queries, boardSize int32, numberOfBoards int32, difficulty int32, newSessionID string) (err error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return errors.New("missing or invalid uid in context")
+	}
 	start := time.Now()
 	err = q.CreateSession(ctx, db.CreateSessionParams{
 		SessionID:      newSessionID,

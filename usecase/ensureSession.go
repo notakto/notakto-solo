@@ -2,20 +2,18 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
-// EnsureSession returns the latest existing session for a user, or creates a new one if none exists.
-// EnsureSession retrieves the user's most recent active session if one exists and is not game over; otherwise it creates a new session and initial state and returns the session fields suitable for a JSON response.
-// When an existing non-game-over session is found, its stored session ID, user ID, boards, winner, board size, number of boards, difficulty, gameover flag, and creation time are returned. If no active session exists, a new session and an empty initial state are created and the new session's ID, provided inputs, an empty boards slice, `false` winner, `false` gameover, and the current time are returned.
-// Database operations use per-call timeouts of 3 seconds; any database error is returned.
-func EnsureSession(ctx context.Context, pool *pgxpool.Pool, uid string, numberOfBoards int32, boardSize int32, difficulty int32) (
+func EnsureSession(ctx context.Context, pool *pgxpool.Pool, numberOfBoards int32, boardSize int32, difficulty int32) (
 	sessionID string,
 	uidOut string,
 	boards []int32,
@@ -27,6 +25,10 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, uid string, numberOf
 	createdAt time.Time,
 	err error,
 ) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return "", "", nil, false, 0, 0, 0, false, time.Time{}, errors.New("missing or invalid uid in context")
+	}
 	queries := db.New(pool)
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.Serializable,
@@ -39,7 +41,7 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, uid string, numberOf
 
 	qtx := queries.WithTx(tx)
 	// STEP 1: Try existing session
-	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx)
 	if err == nil && existing.SessionID != "" {
 		isGameOver := existing.Gameover.Valid && existing.Gameover.Bool
 		if !isGameOver {
@@ -85,7 +87,7 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, uid string, numberOf
 
 	// a) Insert into session
 
-	if err = store.CreateSession(ctx, qtx, uid, boardSize, numberOfBoards, difficulty, newSessionID); err != nil {
+	if err = store.CreateSession(ctx, qtx, boardSize, numberOfBoards, difficulty, newSessionID); err != nil {
 		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
 	}
 

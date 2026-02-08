@@ -8,12 +8,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 )
 
-func GetPlayerById(ctx context.Context, q *db.Queries, uid string) (
-	player db.Player,
-	err error,
-) {
+func GetPlayerById(ctx context.Context, q *db.Queries) (player db.Player, err error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return db.Player{}, errors.New("missing or invalid uid in context")
+	}
 	start := time.Now()
 	player, err = q.GetPlayerById(ctx, uid)
 	if time.Since(start) > 2*time.Second {

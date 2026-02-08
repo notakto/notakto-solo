@@ -8,12 +8,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 )
 
-func GetLatestSessionStateByPlayerIdWithLock(ctx context.Context, q *db.Queries, uid string) (
-	latestSessionState db.GetLatestSessionStateByPlayerIdWithLockRow,
-	err error,
-) {
+func GetLatestSessionStateByPlayerIdWithLock(ctx context.Context, q *db.Queries) (latestSessionState db.GetLatestSessionStateByPlayerIdWithLockRow, err error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return db.GetLatestSessionStateByPlayerIdWithLockRow{}, errors.New("missing or invalid uid in context")
+	}
 	start := time.Now()
 	latestSessionState, err = q.GetLatestSessionStateByPlayerIdWithLock(ctx, uid)
 	if time.Since(start) > 2*time.Second {

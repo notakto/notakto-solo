@@ -11,10 +11,7 @@ import (
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
-// FirebaseAuthMiddleware returns an Echo middleware that validates a Firebase ID
-// token from the Authorization header using the provided auth client.
-// On success it injects the Firebase UID into the request's context.Context so
-// downstream handlers read uid via contextkey.UIDFromContext(c.Request().Context()).
+// FirebaseAuthMiddleware validates the Bearer token and injects UID into the request context.
 func FirebaseAuthMiddleware(authClient *auth.Client) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

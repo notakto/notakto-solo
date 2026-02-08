@@ -8,26 +8,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
-// EnsureMakeMove validates the session and the requested move, applies the player's move,
-// optionally applies an AI response, persists session state changes, and awards rewards when the game ends.
-//
-// The function performs validation of session ownership, board and cell indices, and move legality;
-// it updates the session boards immediately after the player's move, checks for game-over, and if the
-// game continues computes and applies an AI move and rechecks game-over. When a game-over occurs the
-// session is updated and wallet rewards (coins and XP) are applied to the player's account.
-//
-// Returns:
-//   - boards: the session's boards after applying the player's move and any AI move.
-//   - gameOver: true if the game has ended after the applied moves, false otherwise.
-//   - winner: true if the player won, false if the AI won or if the game is not over.
-//   - coinsRewarded: coins awarded to the player as part of the game-over rewards, 0 if none or game not ended.
-//   - xpRewarded: XP awarded to the player as part of the game-over rewards, 0 if none or game not ended.
-//   - err: non-nil when validation, DB updates, or AI move resolution fail.
-func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, sessionID string, boardIndex int32, cellIndex int32) (
+func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, sessionID string, boardIndex int32, cellIndex int32) (
 	boards []int32,
 	gameOver bool,
 	winner bool,
@@ -35,6 +21,10 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	xpRewarded int32,
 	err error,
 ) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return nil, false, false, 0, 0, errors.New("missing or invalid uid in context")
+	}
 	queries := db.New(pool)
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.Serializable,
@@ -48,7 +38,7 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 	qtx := queries.WithTx(tx)
 
 	// STEP 1: Validate sessionId
-	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx)
 	if err != nil {
 		return nil, false, false, 0, 0, err
 	}
@@ -117,7 +107,7 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 		}
 		_, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
 
-		err = store.UpdateWalletXpReward(ctx, qtx, uid, xpReward)
+		err = store.UpdateWalletXpReward(ctx, qtx, xpReward)
 		if err != nil {
 			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
@@ -171,7 +161,7 @@ func EnsureMakeMove(ctx context.Context, pool *pgxpool.Pool, uid string, session
 				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 			}
 			coinsReward, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
-			err = store.UpdateWalletCoinsAndXpReward(ctx, qtx, uid, coinsReward, xpReward)
+			err = store.UpdateWalletCoinsAndXpReward(ctx, qtx, coinsReward, xpReward)
 			if err != nil {
 				return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 			}

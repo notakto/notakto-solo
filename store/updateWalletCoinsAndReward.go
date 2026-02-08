@@ -2,16 +2,20 @@ package store
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 )
 
-func UpdateWalletCoinsAndXpReward(ctx context.Context, q *db.Queries, uid string, coinsReward int32, xpReward int32) (
-	err error,
-) {
+func UpdateWalletCoinsAndXpReward(ctx context.Context, q *db.Queries, coinsReward int32, xpReward int32) (err error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return errors.New("missing or invalid uid in context")
+	}
 	start := time.Now()
 	err = q.UpdateWalletCoinsAndXpReward(ctx, db.UpdateWalletCoinsAndXpRewardParams{
 		Uid:   uid,

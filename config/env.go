@@ -21,7 +21,7 @@ var (
 	initOnce sync.Once
 )
 
-// InitEnv must be called once at startup
+// InitEnv loads env; call once at startup.
 func InitEnv() error {
 	var initErr error
 	initOnce.Do(func() {
@@ -56,7 +56,6 @@ func InitEnv() error {
 	return initErr
 }
 
-// Resolve logical key -> actual env key
 func resolveKey(key string) string {
 	if envMode == EnvPreview {
 		switch key {
@@ -86,7 +85,7 @@ func load(key string, defaults ...string) error {
 	return nil
 }
 
-// GetEnv returns the resolved env value
+// GetEnv returns the resolved env value.
 func GetEnv(key string) (string, bool) {
 	actualKey := resolveKey(key)
 	val, ok := envStore.Load(actualKey)
@@ -96,7 +95,7 @@ func GetEnv(key string) (string, bool) {
 	return val.(string), true
 }
 
-// MustGetEnv panics if env var is missing (recommended for required config)
+// MustGetEnv returns the env value or panics if missing.
 func MustGetEnv(key string) string {
 	val, ok := GetEnv(key)
 	if !ok {

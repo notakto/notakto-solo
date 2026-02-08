@@ -32,7 +32,6 @@ func (h *Handler) UndoMoveHandler(c echo.Context) error {
 	boards, err := usecase.EnsureUndoMove(
 		c.Request().Context(),
 		h.Pool,
-		uid,
 		req.SessionID,
 	)
 	if err != nil {

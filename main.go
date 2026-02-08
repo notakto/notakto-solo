@@ -20,7 +20,6 @@ import (
 	"github.com/rakshitg600/notakto-solo/routes"
 )
 
-// main initializes environment and dependencies, configures the Echo HTTP server and middleware, connects to the database, registers routes, and starts listening on the configured port.
 func main() {
 	if err := config.InitEnv(); err != nil {
 		log.Fatal("Failed to load environment variables:", err)

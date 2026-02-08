@@ -8,12 +8,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 )
 
-func GetWalletByPlayerIdWithLock(ctx context.Context, q *db.Queries, uid string) (
-	wallet db.Wallet,
-	err error,
-) {
+func GetWalletByPlayerIdWithLock(ctx context.Context, q *db.Queries) (wallet db.Wallet, err error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return db.Wallet{}, errors.New("missing or invalid uid in context")
+	}
 	start := time.Now()
 	wallet, err = q.GetWalletByPlayerIdWithLock(ctx, uid)
 	if time.Since(start) > 2*time.Second {

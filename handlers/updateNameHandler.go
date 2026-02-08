@@ -28,7 +28,7 @@ func (h *Handler) UpdateNameHandler(c echo.Context) error {
 		return echo.NewHTTPError(400, "name is required")
 	}
 	// ✅ Update the name
-	updatedName, err := usecase.EnsureUpdateName(c.Request().Context(), h.Pool, req.Name, uid)
+	updatedName, err := usecase.EnsureUpdateName(c.Request().Context(), h.Pool, req.Name)
 	if err != nil {
 		return echo.NewHTTPError(500, err.Error())
 	}

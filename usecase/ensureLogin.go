@@ -8,15 +8,18 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
-// EnsureLogin authenticates a user and ensures a corresponding player record and wallet exist.
-// It returns the profile picture URL, name, email, `true` if a new player was created, `false` otherwise, and any error.
-func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Client, uid string) (profilePic string, name string, email string, isNew bool, err error) {
+func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Client) (profilePic string, name string, email string, isNew bool, err error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return "", "", "", false, errors.New("missing or invalid uid in context")
+	}
 	// STEP 1: Try existing session
 	queries := db.New(pool)
-	existing, err := store.GetPlayerById(ctx, queries, uid)
+	existing, err := store.GetPlayerById(ctx, queries)
 	if err == nil && existing.Uid != "" {
 		name = existing.Name
 		email = existing.Email
@@ -34,7 +37,7 @@ func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Clien
 		return "", "", "", false, err
 	}
 	// STEP 2: Fetch profile from Firebase
-	name, email, profilePic, err = GetFirebaseUserProfile(ctx, authClient, uid)
+	name, email, profilePic, err = GetFirebaseUserProfile(ctx, authClient)
 	if err != nil {
 		return "", "", "", true, err
 	}
@@ -49,12 +52,12 @@ func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Clien
 
 	qtx := queries.WithTx(tx)
 	// STEP 3: Create new player
-	err = store.CreatePlayer(ctx, qtx, uid, name, email, profilePic)
+	err = store.CreatePlayer(ctx, qtx, name, email, profilePic)
 	if err != nil {
 		return "", "", "", true, err
 	}
 	// STEP 4: Create Wallet for player
-	err = store.CreateWallet(ctx, qtx, uid)
+	err = store.CreateWallet(ctx, qtx)
 	if err != nil {
 		return "", "", "", true, err
 	}

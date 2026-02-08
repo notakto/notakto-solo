@@ -6,18 +6,21 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
-// EnsureGetWallet retrieves the wallet for the given player ID and returns its coins and XP.
-// or if the wallet's coins or XP fields are NULL/invalid.
-func EnsureGetWallet(ctx context.Context, pool *pgxpool.Pool, uid string) (
+func EnsureGetWallet(ctx context.Context, pool *pgxpool.Pool) (
 	coins int32,
 	xp int32,
 	err error,
 ) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return 0, 0, errors.New("missing or invalid uid in context")
+	}
 	queries := db.New(pool)
-	wallet, err := store.GetWalletByPlayerId(ctx, queries, uid)
+	wallet, err := store.GetWalletByPlayerId(ctx, queries)
 	if err != nil {
 		return 0, 0, err
 	}

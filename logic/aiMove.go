@@ -5,7 +5,6 @@ import (
 	"math/rand"
 )
 
-// Convert slice to lookup map for O(1) membership checks
 func makeBoardSet(boards []int32) map[int32]bool {
 	set := make(map[int32]bool, len(boards))
 	for _, idx := range boards {
@@ -14,7 +13,6 @@ func makeBoardSet(boards []int32) map[int32]bool {
 	return set
 }
 
-// Heuristic: favor center cells
 func getCellValue(globalIndex, boardSize int32) int32 {
 	cellIndex := globalIndex % (boardSize * boardSize)
 	r := float64(cellIndex / boardSize)
@@ -23,7 +21,6 @@ func getCellValue(globalIndex, boardSize int32) int32 {
 	return int32(-math.Abs(r-center) - math.Abs(c-center))
 }
 
-// Produce all valid moves (global indexes)
 func getValidMoves(boards []int32, boardSize, numberOfBoards int32) []int32 {
 	set := makeBoardSet(boards)
 	moves := []int32{}
@@ -53,7 +50,6 @@ func getValidMoves(boards []int32, boardSize, numberOfBoards int32) []int32 {
 	return moves
 }
 
-// Apply a move (returns new boards slice)
 func updateBoards(boards []int32, move int32) []int32 {
 	newBoards := make([]int32, len(boards)+1)
 	copy(newBoards, boards)
@@ -61,7 +57,6 @@ func updateBoards(boards []int32, move int32) []int32 {
 	return newBoards
 }
 
-// Main AI function: returns global move index (e.g. 13)
 func GetAIMove(boards []int32, boardSize int32, numberOfBoards int32, difficulty int32) int32 {
 	moves := getValidMoves(boards, boardSize, numberOfBoards)
 	if len(moves) == 0 {

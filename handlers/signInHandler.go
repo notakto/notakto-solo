@@ -28,7 +28,6 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		c.Request().Context(),
 		h.Pool,
 		h.AuthClient,
-		uid,
 	)
 
 	if err != nil {

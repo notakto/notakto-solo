@@ -7,16 +7,18 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
-// EnsureQuitGame verifies that the provided sessionID matches the player's latest session and marks that session as quit in the database.
-// It returns true if the session was already marked game over or was successfully updated to quit.
-// It returns false and a non-nil error when the session does not match (session expired or not found) or when a database operation fails.
-func EnsureQuitGame(ctx context.Context, pool *pgxpool.Pool, uid string, sessionID string) (
+func EnsureQuitGame(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	success bool,
 	err error,
 ) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return false, errors.New("missing or invalid uid in context")
+	}
 	queries := db.New(pool)
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.Serializable,
@@ -29,7 +31,7 @@ func EnsureQuitGame(ctx context.Context, pool *pgxpool.Pool, uid string, session
 
 	qtx := queries.WithTx(tx)
 	// STEP 1: Validate sessionId
-	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx, uid)
+	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx)
 	if err != nil {
 		return false, err
 	}

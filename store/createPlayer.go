@@ -2,16 +2,20 @@ package store
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/rakshitg600/notakto-solo/db/generated"
+	"github.com/rakshitg600/notakto-solo/contextkey"
 )
 
-func CreatePlayer(ctx context.Context, q *db.Queries, uid string, name string, email string, profilePic string) (
-	err error,
-) {
+func CreatePlayer(ctx context.Context, q *db.Queries, name string, email string, profilePic string) (err error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return errors.New("missing or invalid uid in context")
+	}
 	start := time.Now()
 	err = q.CreatePlayer(ctx, db.CreatePlayerParams{
 		Uid:   uid,

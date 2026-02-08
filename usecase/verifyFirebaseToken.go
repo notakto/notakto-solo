@@ -2,12 +2,13 @@ package usecase
 
 import (
 	"context"
+	"errors"
 
 	"firebase.google.com/go/v4/auth"
+
+	"github.com/rakshitg600/notakto-solo/contextkey"
 )
 
-// VerifyFirebaseToken validates a Firebase ID token using the Admin SDK.
-// It returns the user's UID on success, or a non-nil error on failure.
 func VerifyFirebaseToken(ctx context.Context, authClient *auth.Client, idToken string) (string, error) {
 	token, err := authClient.VerifyIDToken(ctx, idToken)
 	if err != nil {
@@ -16,9 +17,11 @@ func VerifyFirebaseToken(ctx context.Context, authClient *auth.Client, idToken s
 	return token.UID, nil
 }
 
-// GetFirebaseUserProfile fetches the profile data for a Firebase user by UID.
-// It returns the display name, email, and photo URL from the Firebase user record.
-func GetFirebaseUserProfile(ctx context.Context, authClient *auth.Client, uid string) (name string, email string, photo string, err error) {
+func GetFirebaseUserProfile(ctx context.Context, authClient *auth.Client) (name string, email string, photo string, err error) {
+	uid, ok := contextkey.UIDFromContext(ctx)
+	if !ok || uid == "" {
+		return "", "", "", errors.New("missing or invalid uid in context")
+	}
 	u, err := authClient.GetUser(ctx, uid)
 	if err != nil {
 		return "", "", "", err
