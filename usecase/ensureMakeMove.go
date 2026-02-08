@@ -23,7 +23,7 @@ import (
 // Returns:
 //   - boards: the session's boards after applying the player's move and any AI move.
 //   - gameOver: true if the game has ended after the applied moves, false otherwise.
-//   - winner: true if the AI is the winner, false otherwise (when meaningful).
+//   - winner: true if the player won, false if the AI won or if the game is not over.
 //   - coinsRewarded: coins awarded to the player as part of the game-over rewards, 0 if none or game not ended.
 //   - xpRewarded: XP awarded to the player as part of the game-over rewards, 0 if none or game not ended.
 //   - err: non-nil when validation, DB updates, or AI move resolution fail.
