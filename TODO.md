@@ -1,40 +1,40 @@
-1. [x] Ensure uniqueness of session id
-2. [ ] Create middleware tables in db
-3. [x] shift attributes from sstate to session table and remove some attributes if possible
-4. [x] change the data type of boards and gamehistory to array of bool only and the array too kept 1 D only
-5. [x] make the signin endpoint
-6. [x] handle profile pic in player table
-7. [ ] 15 minutes of playable time instead of total elapsed time
-8. [ ] Find race conditions and manage concurrency
-9. [ ] Find memory leaks
-10. [ ] middlewares and their chaining and their database tables
-11. [ ] Caching
-12. [ ] New Solo Mode with 1 minute timer from last move
-13. [ ] Consider all possible network partitions and make server robust
-14. [x] Firebase api vs sdk
-15. [ ] Explore if we could migrate to protobuf
-16. [x] Transactions implementation
-17. [ ] Architecture fix to decide how to share state between services especially Wallet table
-18. [ ] Improve error handling
-19. [x] DB transactions in APIs
-20. [ ] only one api call at a time for a user (per uid serialisation)
-21. [ ] remove and change logging
-22. [x] migrate from lib/pq to pgx
-23. [ ] write all manual tests
-24. [x] refactor to segregate business logic from package functions and rename package functions
-25. [ ] in process (hot) cache like ristretto
-26. [ ] proper grouping and configuration of middlewares
-27. [ ] monitoring
-28. [ ] Authorization
-29. [ ] Timeouts of cache, db, routes etc
-30. [ ] comments in code
-31. [ ] global+fixed window+whitelist ratelimit health endpoint
-32. [x] ensureLogin.go and tokenToId.go making same call, either cache or set in context
-33. [x] signin handler uid
-34. [x] graceful shutdown
-35. [x] one more layer between sqlc and functions: domain
-36. [ ] duplicate row error
-37. [ ] retry db/tx on fail
-38. [ ] refactor store package with create, read, update and delete
-39. [x] uid mismatch bug and read uid from context always and never as prop
-40. [x] replace -1 as placeholder for skip move with something good
+1. Ensure uniqueness of session id - [x]
+2. Create middleware tables in db - [ ]
+3. shift attributes from sstate to session table and remove some attributes if possible - [x]
+4. change the data type of boards and gamehistory to array of bool only and the array too kept 1 D only - [x]
+5. make the signin endpoint - [x]
+6. handle profile pic in player table - [x]
+7. 15 minutes of playable time instead of total elapsed time - [ ]
+8. Find race conditions and manage concurrency - [ ]
+9. Find memory leaks - [ ]
+10. middlewares and their chaining and their database tables - [ ]
+11. Caching - [ ]
+12. New Solo Mode with 1 minute timer from last move - [ ]
+13. Consider all possible network partitions and make server robust - [ ]
+14. Firebase api vs sdk - [x]
+15. Explore if we could migrate to protobuf - [ ]
+16. Transactions implementation - [x]
+17. Architecture fix to decide how to share state between services especially Wallet table - [ ]
+18. Improve error handling - [ ]
+19. DB transactions in APIs - [x]
+20. only one api call at a time for a user (per uid serialisation) - [ ]
+21. remove and change logging - [ ]
+22. migrate from lib/pq to pgx - [x]
+23. write all manual tests - [ ]
+24. refactor to segregate business logic from package functions and rename package functions - [x]
+25. in process (hot) cache like ristretto - [ ]
+26. proper grouping and configuration of middlewares - [ ]
+27. monitoring - [ ]
+28. Authorization - [ ]
+29. Timeouts of cache, db, routes etc - [ ]
+30. comments in code - [ ]
+31. global+fixed window+whitelist ratelimit health endpoint - [ ]
+32. ensureLogin.go and tokenToId.go making same call, either cache or set in context - [x]
+33. signin handler uid - [x]
+34. graceful shutdown - [x]
+35. one more layer between sqlc and functions: domain - [x]
+36. duplicate row error - [ ]
+37. retry db/tx on fail - [ ]
+38. refactor store package with create, read, update and delete - [ ]
+39. uid mismatch bug and read uid from context always and never as prop - [x]
+40. replace -1 as placeholder for skip move with something good - [x]
