@@ -79,7 +79,7 @@ rules:
   - Application defaults (game config, wallet init values) go in `config/defaults.go`.
   - Firebase UID must always be read from `context.Context` via `contextkey.UIDFromContext()`.
     Never pass UID as a function parameter from the handler.
-  - All database transactions use `pgx.BeginTx` with `pgx.Serializable` isolation.
+  - All database transactions use `pgx.BeginTx`.
     Use `queries.WithTx(tx)` to run sqlc queries within a transaction.
   - SQL changes must be applied via Goose migrations under `db/migrations/`,
     followed by regenerating sqlc code (`sqlc generate`).
