@@ -1,105 +1,158 @@
 project:
   name: notakto-solo
+  description: Solo-mode backend for Notakto (misère tic-tac-toe) game
   language: golang
+  go_version: "1.24"
   stack:
     - golang
-    - echo
-    - goose
-    - sqlc
-    - postgres
+    - echo (v4) — HTTP framework
+    - pgx/v5 — Postgres driver with connection pooling (pgxpool)
+    - sqlc — type-safe SQL code generation
+    - goose — SQL migrations
+    - firebase admin SDK — authentication
+    - godotenv — local env loading
 
 architecture:
-  entrypoint: cmd/server/main.go
+  entrypoint: main.go
   description: |
-    The project follows a layered architecture built around clarity and separation of concerns:
+    The project follows a layered architecture with strict separation of concerns:
 
-    **Flow:**  
-    middleware → routes → handler → functions → sqlc (DB)
+    **Request flow:**
+    middleware → routes → handlers → usecase → store → db/generated (sqlc)
+
+    The `logic/` package provides pure computation functions (AI moves, board
+    dead checks, reward calculations) used by `usecase/`.
 
     **Packages:**
-      - **cmd/server/main.go**
-        - Application entry point.
-        - Registers middlewares and routes.
+      - **main.go**
+        - Application entry point at project root.
+        - Initializes config, Firebase Admin SDK, Echo server, pgxpool, and routes.
+        - Implements graceful shutdown (SIGINT/SIGTERM).
+      - **config/**
+        - Centralized environment variable management via `config.InitEnv()`.
+        - Supports preview/prod env resolution (Render deployments).
+        - Access via `config.MustGetEnv()` / `config.GetEnv()`.
+        - Also holds application defaults (e.g., `config.Wallet`).
+      - **contextkey/**
+        - Defines typed context keys (e.g., `contextkey.UID`).
+        - Provides helper `contextkey.UIDFromContext(ctx)` to extract values.
       - **middleware/**
-        - Contains a chain of 3 middlewares, executed in order:
-          1. IP-based rate limiter  
-          2. Firebase Auth token extractor (sets `uid` in context)  
-          3. UID-based rate limiter
+        - CORS middleware with origin allowlist.
+        - Firebase Auth middleware: extracts Bearer token, verifies via Firebase
+          Admin SDK, injects UID into `context.Context`.
       - **routes/**
-        - Defines all API endpoints and links each to the correct handler function.
-      - **handler/**
-        - Handles HTTP requests and responses.
-        - Converts incoming JSON → Go types, calls `functions`, then Go types → JSON for the response.
-      - **functions/**
-        - Contains all business logic.
-        - May call multiple SQL or logic functions as needed.
-        - Uses only `sqlc`-generated DB methods for database access.
+        - Defines all API endpoints (`/v1/*`) and links each to handler methods.
+        - Creates the `Handler` struct and applies per-route middleware.
+      - **handlers/**
+        - HTTP layer: parses JSON request, validates input, calls `usecase`, returns JSON response.
+        - Each handler is a method on the `Handler` struct (holds `*pgxpool.Pool` and `*auth.Client`).
+        - Request/response structs are defined locally in each handler file.
+      - **usecase/**
+        - Business logic orchestration layer.
+        - Manages transactions (`pgx.BeginTx` with serializable isolation).
+        - Calls `store/` for DB access and `logic/` for computations.
+        - Functions follow `Ensure<Action>` naming (e.g., `EnsureSession`, `EnsureMakeMove`).
+      - **store/**
+        - Data access layer wrapping `sqlc`-generated queries.
+        - Each file exposes one focused function (e.g., `CreateSession`, `GetPlayerById`).
+        - Accepts `*db.Queries` (or tx-bound queries) and `context.Context`.
+        - Reads UID from context via `contextkey.UIDFromContext()`.
+      - **logic/**
+        - Pure functions with no DB or HTTP dependencies.
+        - AI move calculation, board-dead detection, reward computation.
       - **db/**
-        - Contains SQL migrations (managed by Goose).
-        - Holds `sqlc`-generated DB query code.
-      - **types/**
-        - Contains shared Go structs, validators, enums, and common types.
-        - Used by both `handler` and `functions` to ensure consistent type definitions and validation logic.
+        - `db/migrations/` — Goose SQL migration files (sequential numbering: 001_, 002_, ...).
+        - `db/queries/` — Raw SQL files for sqlc (player.sql, wallet.sql, session.sql, sessionstate.sql).
+        - `db/generated/` — Auto-generated Go code by sqlc. **Never edit manually.**
 
 rules:
   - Always maintain the strict call order:
-      middleware → routes → handler → functions → sqlc
+      middleware → routes → handlers → usecase → store → db/generated
   - No business logic in routes or handlers.
-  - Middlewares must be reusable and never depend on handlers or functions.
-  - Only `functions` layer may directly call `sqlc` DB methods.
-  - All data validation and reusable struct definitions go in the `types` package.
-  - All env must be set in config/env.go only 
-  - Handlers should:
-      1. Parse and validate JSON input using `types` structs and validators.
-      2. Call the appropriate `functions` method.
-      3. Return JSON-formatted response.
-  - Functions must not do request/response JSON marshaling/unmarshaling.
-  - Prefer context-aware functions (`ctx context.Context`) across all layers.
-  - SQL changes must be applied via Goose migrations under `db/migrations`, followed by regenerating sqlc code.
+  - Handlers only: parse request, validate input, call usecase, format response.
+  - Only `store/` may call `sqlc`-generated DB methods (via `*db.Queries`).
+  - `usecase/` orchestrates store calls and logic — it owns transactions.
+  - `logic/` must be pure: no DB, no HTTP, no context keys.
+  - Middlewares must be reusable and never depend on handlers, usecase, or store.
+    Exception: middleware may call `usecase.VerifyFirebaseToken()` for auth.
+  - All env must be set in `config/env.go` only; access via `config.MustGetEnv()`.
+  - Application defaults (game config, wallet init values) go in `config/defaults.go`.
+  - Firebase UID must always be read from `context.Context` via `contextkey.UIDFromContext()`.
+    Never pass UID as a function parameter from the handler.
+  - All database transactions use `pgx.BeginTx` with `pgx.Serializable` isolation.
+    Use `queries.WithTx(tx)` to run sqlc queries within a transaction.
+  - SQL changes must be applied via Goose migrations under `db/migrations/`,
+    followed by regenerating sqlc code (`sqlc generate`).
   - No hardcoded queries outside of sqlc-generated code.
+  - Never edit files in `db/generated/` — they are auto-generated by sqlc.
   - When creating a new endpoint:
-      1. Define route in `routes/`
-      2. Implement handler in `handler/`
-      3. Add corresponding logic in `functions/`
-      4. Define any new structs or validators in `types/`
-      5. **Create a test file for the endpoint under `tests/`**
-         - Tests must cover success and failure cases.
-         - Use mocked dependencies for database or external calls.
+      1. Define route in `routes/routes.go`
+      2. Implement handler method on `Handler` in `handlers/`
+      3. Add orchestration logic in `usecase/`
+      4. Add DB access functions in `store/` if needed
+      5. Add pure logic in `logic/` if needed
+      6. Write SQL queries in `db/queries/` and run `sqlc generate`
 
 code_style:
   - Use idiomatic Go naming:
       - PascalCase for exported names (types, funcs, structs)
       - camelCase for local variables
-  - Avoid global state; inject dependencies where needed.
-  - Keep each function focused and small (SRP - Single Responsibility Principle).
+  - Keep each function focused and small (SRP).
   - Error handling must be explicit (`if err != nil { return ... }`).
-  - For logging or debugging, prefer context-aware logging.
+  - Prefer context-aware functions (`ctx context.Context`) across all layers.
+  - Log slow DB calls (>2s) in store functions.
+  - One function per file in `store/` and `handlers/` packages.
+  - Use `pgtype` (e.g., `pgtype.Int4`, `pgtype.Bool`) for nullable DB columns.
 
 conventions:
-  - Route definitions live in `routes/*.go` and call handlers from `handler/`.
-  - Handler request/response structs and validators live in `types/` if reused, or locally in the handler if unique.
-  - Shared domain structs (used by multiple layers) must live in `types/`.
-  - Firebase `uid` must always be read from `context.Context`.
-  - All environment variables and configs should be centralized in a `config/` package.
-  - Package imports:
-      - Never import `handler` or `routes` inside `functions` or `middleware`.
-      - `functions` may import `db` and `types`.
-      - `handler` may import `functions` and `types`.
+  - Route definitions live in `routes/routes.go` and call handler methods.
+  - Request/response structs are defined locally in each handler file (not in a shared `types/` package).
+  - Firebase UID is always read from `context.Context`, never from request body/params.
+  - All environment variables and configs are centralized in `config/`.
+  - Package import rules:
+      - `handlers` may import `usecase` and `contextkey`.
+      - `usecase` may import `store`, `logic`, `db/generated`, and `contextkey`.
+      - `store` may import `db/generated` and `contextkey`.
+      - `logic` must not import any other internal package.
+      - Never import `handlers` or `routes` inside `usecase`, `store`, or `middleware`.
+  - Middleware may import `usecase` only for auth verification.
+
+naming_conventions:
+  - Handler methods: `<Action>Handler` on `*Handler` receiver
+      (e.g., `CreateGameHandler`, `MakeMoveHandler`)
+  - Usecase functions: `Ensure<Action>`
+      (e.g., `EnsureSession`, `EnsureMakeMove`, `EnsureLogin`)
+  - Store functions: `<Action>` matching the operation
+      (e.g., `CreateSession`, `GetPlayerById`, `UpdateWalletCoinsAndReward`)
+  - Logic functions: descriptive pure function names
+      (e.g., `GetAIMove`, `IsBoardDead`, `CalculateRewards`)
+  - Request structs: `<Action>Request` (e.g., `CreateGameRequest`, `MakeMoveRequest`)
+  - Response structs: `<Action>Response` (e.g., `CreateGameResponse`, `MakeMoveResponse`)
+  - Context keys: defined in `contextkey/` with typed keys and `FromContext` helpers
+  - Migration files: sequential `NNN_description.sql` (e.g., `001_init.sql`)
+  - SQL query files: one per table in `db/queries/` (e.g., `player.sql`, `wallet.sql`)
+
+api:
+  base_path: /v1
+  auth: Firebase Bearer token (all endpoints except health checks)
+  endpoints:
+    - POST /v1/sign-in
+    - POST /v1/create-game
+    - POST /v1/make-move
+    - POST /v1/skip-move
+    - POST /v1/undo-move
+    - POST /v1/quit-game
+    - POST /v1/update-name
+    - GET  /v1/get-wallet
+    - HEAD /v1/health-head
+    - GET  /v1/health-get
 
 cursor:
   goals:
-    - Maintain the architecture integrity when generating new code.
-    - Suggest correct file placement and imports for new features.
-    - Enforce that all new logic goes inside `functions`, not handlers.
-    - Auto-complete SQL queries and Go structs using existing schema and `types`.
-    - Keep request/response JSON marshaling/unmarshaling confined to `handler` layer only.
-    - Automatically generate test skeletons when new endpoints are created.
-
-naming_conventions:
-  - Routes: 
-  - Handler functions: `Handle<Action>` (e.g., `HandleCreateSession`)
-  - Functions layer: `<Action><Entity>` (e.g., `CreateSession`, `GetUserStats`)
-  - Types:
-      - Request structs: `<Action><Entity>Request`
-      - Response structs: `<Action><Entity>Response`
-      - Validators: `<Entity>Validator`
+    - Maintain the layered architecture integrity when generating new code.
+    - Suggest correct file placement and package imports for new features.
+    - Enforce that all orchestration logic goes inside `usecase/`, not handlers.
+    - Keep request/response JSON marshaling confined to `handlers/` layer only.
+    - Use `pgtype` wrappers for nullable DB fields.
+    - Respect transaction boundaries — `usecase/` owns `BeginTx`/`Commit`/`Rollback`.
+    - When suggesting SQL, write it in `db/queries/` and remind to run `sqlc generate`.
