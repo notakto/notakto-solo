@@ -14,7 +14,8 @@ type UndoMoveRequest struct {
 	SessionID string `json:"sessionId"`
 }
 type UndoMoveResponse struct {
-	Boards []int32 `json:"boards"`
+	Boards   []int32 `json:"boards"`
+	IsAiMove []bool  `json:"isAiMove"`
 }
 
 func (h *Handler) UndoMoveHandler(c echo.Context) error {
@@ -29,7 +30,7 @@ func (h *Handler) UndoMoveHandler(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-	boards, err := usecase.EnsureUndoMove(
+	boards, isAiMove, err := usecase.EnsureUndoMove(
 		c.Request().Context(),
 		h.Pool,
 		req.SessionID,
@@ -46,7 +47,8 @@ func (h *Handler) UndoMoveHandler(c echo.Context) error {
 	}
 
 	resp := UndoMoveResponse{
-		Boards: boards,
+		Boards:   boards,
+		IsAiMove: isAiMove,
 	}
 	log.Printf("UndoMoveHandler completed for uid: %s, sessionID: %s", uid, req.SessionID)
 	return c.JSON(http.StatusOK, resp)

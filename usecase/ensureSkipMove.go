@@ -15,6 +15,7 @@ import (
 
 func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	boards []int32,
+	isAiMove []bool,
 	gameOver bool,
 	winner bool,
 	coinsRewarded int32,
@@ -23,7 +24,7 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 ) {
 	uid, ok := contextkey.UIDFromContext(ctx)
 	if !ok || uid == "" {
-		return nil, false, false, 0, 0, errors.New("missing or invalid uid in context")
+		return nil, nil, false, false, 0, 0, errors.New("missing or invalid uid in context")
 	}
 	queries := db.New(pool)
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
@@ -31,7 +32,7 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 		AccessMode: pgx.ReadWrite,
 	})
 	if err != nil {
-		return nil, false, false, 0, 0, err
+		return nil, nil, false, false, 0, 0, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -39,18 +40,18 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	// STEP 1: Validate sessionId
 	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx)
 	if err != nil {
-		return nil, false, false, 0, 0, err
+		return nil, nil, false, false, 0, 0, err
 	}
 	if existing.SessionID != sessionID {
-		return nil, false, false, 0, 0, errors.New("session expired or not found")
+		return nil, nil, false, false, 0, 0, errors.New("session expired or not found")
 	}
 	// Validate IsAiMove and Boards length alignment
 	if len(existing.IsAiMove) != len(existing.Boards) {
-		return nil, false, false, 0, 0, errors.New("session state corrupted: IsAiMove and Boards length mismatch")
+		return nil, nil, false, false, 0, 0, errors.New("session state corrupted: IsAiMove and Boards length mismatch")
 	}
 	// STEP 2: Validate gameover
 	if existing.Gameover.Valid && existing.Gameover.Bool {
-		return nil, true, existing.Winner.Bool, 0, 0, errors.New("game is already over")
+		return nil, nil, true, existing.Winner.Bool, 0, 0, errors.New("game is already over")
 	}
 	// STEP 3: Verify if game is over before skipping move
 	existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
@@ -62,33 +63,33 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	}
 	if existing.Gameover.Valid && existing.Gameover.Bool {
 		//TODO: Update session state in DB to reflect gameover
-		return nil, true, existing.Winner.Bool, 0, 0, errors.New("game is already over")
+		return nil, nil, true, existing.Winner.Bool, 0, 0, errors.New("game is already over")
 	}
 
 	// STEP 4: Check wallet for sufficient coins
 	const skipMoveCost = 200
 	wallet, err := store.GetWalletByPlayerIdWithLock(ctx, qtx)
 	if err != nil {
-		return nil, false, false, 0, 0, err
+		return nil, nil, false, false, 0, 0, err
 	}
 	if wallet.Coins.Valid == false || wallet.Xp.Valid == false {
-		return nil, false, false, 0, 0, errors.New("invalid wallet response from db")
+		return nil, nil, false, false, 0, 0, errors.New("invalid wallet response from db")
 	}
 	if wallet.Coins.Int32 < skipMoveCost {
-		return nil, false, false, 0, 0, errors.New("insufficient coins to skip move")
+		return nil, nil, false, false, 0, 0, errors.New("insufficient coins to skip move")
 	}
 
 	// STEP 5: Deduct coins
 	err = store.UpdateWalletReduceCoins(ctx, qtx, skipMoveCost)
 	if err != nil {
-		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+		return nil, nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 	}
 
 	// STEP 6: AI makes a move
 	aiMoveIndex := logic.GetAIMove(existing.Boards, existing.BoardSize.Int32, existing.NumberOfBoards.Int32, existing.Difficulty.Int32)
 	if aiMoveIndex == -1 {
 		// No valid moves for AI - this shouldn't happen if game is not over
-		return existing.Boards, false, false, 0, 0, errors.New("AI could not find a valid move")
+		return existing.Boards, existing.IsAiMove, false, false, 0, 0, errors.New("AI could not find a valid move")
 	}
 
 	existing.Boards = append(existing.Boards, aiMoveIndex)
@@ -109,13 +110,14 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	// Update session state after AI move
 	err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards, existing.IsAiMove)
 	if err != nil {
-		return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+		return nil, nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 	}
 	if existing.Gameover.Valid && !existing.Gameover.Bool {
 		if err := tx.Commit(ctx); err != nil {
-			return nil, false, false, 0, 0, err
+			return nil, nil, false, false, 0, 0, err
 		}
 		return existing.Boards,
+			existing.IsAiMove,
 			false,
 			false,
 			0,
@@ -126,17 +128,17 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	if existing.Gameover.Valid && existing.Gameover.Bool {
 		err = store.UpdateSessionAfterGameover(ctx, qtx, sessionID, existing.Winner)
 		if err != nil {
-			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+			return nil, nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
 		coinsReward, xpReward := logic.CalculateRewards(existing.NumberOfBoards.Int32, existing.BoardSize.Int32, existing.Difficulty.Int32, existing.Winner.Valid && existing.Winner.Bool)
 		err = store.UpdateWalletCoinsAndXpReward(ctx, qtx, coinsReward, xpReward)
 		if err != nil {
-			return nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
+			return nil, nil, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, 0, 0, err
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, false, false, 0, 0, err
+			return nil, nil, false, false, 0, 0, err
 		}
-		return existing.Boards, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, coinsReward, xpReward, nil
+		return existing.Boards, existing.IsAiMove, existing.Gameover.Valid && existing.Gameover.Bool, existing.Winner.Valid && existing.Winner.Bool, coinsReward, xpReward, nil
 	}
-	return nil, false, false, 0, 0, errors.New("invalid gameover state obtained from db")
+	return nil, nil, false, false, 0, 0, errors.New("invalid gameover state obtained from db")
 }

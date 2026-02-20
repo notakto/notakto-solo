@@ -17,6 +17,7 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, numberOfBoards int32
 	sessionID string,
 	uidOut string,
 	boards []int32,
+	isAiMoveOut []bool,
 	winner bool,
 	boardSizeOut int32,
 	numberOfBoardsOut int32,
@@ -27,7 +28,7 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, numberOfBoards int32
 ) {
 	uid, ok := contextkey.UIDFromContext(ctx)
 	if !ok || uid == "" {
-		return "", "", nil, false, 0, 0, 0, false, time.Time{}, errors.New("missing or invalid uid in context")
+		return "", "", nil, nil, false, 0, 0, 0, false, time.Time{}, errors.New("missing or invalid uid in context")
 	}
 	queries := db.New(pool)
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
@@ -35,7 +36,7 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, numberOfBoards int32
 		AccessMode: pgx.ReadWrite,
 	})
 	if err != nil {
-		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
+		return "", "", nil, nil, false, 0, 0, 0, false, time.Time{}, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -78,7 +79,7 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, numberOfBoards int32
 			} else {
 				createdAt = time.Time{}
 			}
-			return sessionID, uidOut, boards, winner, boardSizeOut, numberOfBoardsOut, difficultyOut, gameover, createdAt, nil
+			return sessionID, uidOut, boards, existing.IsAiMove, winner, boardSizeOut, numberOfBoardsOut, difficultyOut, gameover, createdAt, nil
 		}
 	}
 
@@ -88,16 +89,16 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, numberOfBoards int32
 	// a) Insert into session
 
 	if err = store.CreateSession(ctx, qtx, boardSize, numberOfBoards, difficulty, newSessionID); err != nil {
-		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
+		return "", "", nil, nil, false, 0, 0, 0, false, time.Time{}, err
 	}
 
 	// b) Insert initial session state
 	if err = store.CreateInitialSessionState(ctx, qtx, newSessionID); err != nil {
-		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
+		return "", "", nil, nil, false, 0, 0, 0, false, time.Time{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return "", "", nil, false, 0, 0, 0, false, time.Time{}, err
+		return "", "", nil, nil, false, 0, 0, 0, false, time.Time{}, err
 	}
 	// STEP 3: Return newly created session state values
-	return newSessionID, uid, []int32{}, false, boardSize, numberOfBoards, difficulty, false, time.Now(), nil
+	return newSessionID, uid, []int32{}, []bool{}, false, boardSize, numberOfBoards, difficulty, false, time.Now(), nil
 }

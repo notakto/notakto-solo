@@ -15,11 +15,12 @@ import (
 
 func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	boards []int32,
+	isAiMove []bool,
 	err error,
 ) {
 	uid, ok := contextkey.UIDFromContext(ctx)
 	if !ok || uid == "" {
-		return nil, errors.New("missing or invalid uid in context")
+		return nil, nil, errors.New("missing or invalid uid in context")
 	}
 	queries := db.New(pool)
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
@@ -27,7 +28,7 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 		AccessMode: pgx.ReadWrite,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -35,18 +36,18 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	// STEP 1: Validate sessionId
 	existing, err := store.GetLatestSessionStateByPlayerIdWithLock(ctx, qtx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if existing.SessionID != sessionID {
-		return nil, errors.New("session expired or not found")
+		return nil, nil, errors.New("session expired or not found")
 	}
 	// Validate IsAiMove and Boards length alignment
 	if len(existing.IsAiMove) != len(existing.Boards) {
-		return nil, errors.New("session state corrupted: IsAiMove and Boards length mismatch")
+		return nil, nil, errors.New("session state corrupted: IsAiMove and Boards length mismatch")
 	}
 	// STEP 2: Validate gameover
 	if existing.Gameover.Valid && existing.Gameover.Bool {
-		return nil, errors.New("game is already over")
+		return nil, nil, errors.New("game is already over")
 	}
 	// STEP 3: Verify if game is over before undoing move
 	existing.Gameover = pgtype.Bool{Bool: true, Valid: true}
@@ -58,30 +59,30 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	}
 	if existing.Gameover.Valid && existing.Gameover.Bool {
 		//TODO: Update session state in DB to reflect gameover
-		return nil, errors.New("game is already over")
+		return nil, nil, errors.New("game is already over")
 	}
 
 	// STEP 4: Check wallet for sufficient coins
 	const undoMoveCost = 100
 	wallet, err := store.GetWalletByPlayerIdWithLock(ctx, qtx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if wallet.Coins.Valid == false || wallet.Xp.Valid == false {
-		return nil, errors.New("invalid wallet response from db")
+		return nil, nil, errors.New("invalid wallet response from db")
 	}
 	if wallet.Coins.Int32 < undoMoveCost {
-		return nil, errors.New("insufficient coins to undo move")
+		return nil, nil, errors.New("insufficient coins to undo move")
 	}
 	// STEP 5: Verify there are moves to undo
 	if len(existing.Boards) < 1 {
-		return nil, errors.New("no moves to undo")
+		return nil, nil, errors.New("no moves to undo")
 	}
 
 	// STEP 6: Deduct coins
 	err = store.UpdateWalletReduceCoins(ctx, qtx, undoMoveCost)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// STEP 7: Determine how many moves to undo based on isAiMove
@@ -104,10 +105,10 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	// Update session state
 	err = store.UpdateSessionState(ctx, qtx, sessionID, existing.Boards, existing.IsAiMove)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return existing.Boards, nil
+	return existing.Boards, existing.IsAiMove, nil
 }
