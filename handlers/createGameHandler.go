@@ -20,6 +20,7 @@ type CreateGameResponse struct {
 	SessionId      string  `json:"sessionId"`
 	Uid            string  `json:"uid"`
 	Boards         []int32 `json:"boards"`
+	IsAiMove       []bool  `json:"isAiMove"`
 	Winner         bool    `json:"winner"`
 	BoardSize      int32   `json:"boardSize"`
 	NumberOfBoards int32   `json:"numberOfBoards"`
@@ -52,7 +53,7 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 	}
 
 	// ✅✅ Logic: get typed values from EnsureSession
-	sessionID, uidOut, boards, winner, boardSize, numberOfBoards, difficulty, gameover, createdAt, err := usecase.EnsureSession(
+	sessionID, uidOut, boards, isAiMove, winner, boardSize, numberOfBoards, difficulty, gameover, createdAt, err := usecase.EnsureSession(
 		c.Request().Context(),
 		h.Pool,
 		req.NumberOfBoards,
@@ -71,6 +72,7 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 		SessionId:      sessionID,
 		Uid:            uidOut,
 		Boards:         boards,
+		IsAiMove:       isAiMove,
 		Winner:         winner,
 		BoardSize:      boardSize,
 		NumberOfBoards: numberOfBoards,

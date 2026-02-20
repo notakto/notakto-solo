@@ -18,6 +18,7 @@ type MakeMoveRequest struct {
 
 type MakeMoveResponse struct {
 	Boards        []int32 `json:"boards"`
+	IsAiMove      []bool  `json:"isAiMove"`
 	Gameover      bool    `json:"gameover"`
 	Winner        bool    `json:"winner"`
 	CoinsRewarded int32   `json:"coinsRewarded"`
@@ -36,7 +37,7 @@ func (h *Handler) MakeMoveHandler(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-	boards, gameOver, winner, coinsRewarded, xpRewarded, err := usecase.EnsureMakeMove(
+	boards, isAiMove, gameOver, winner, coinsRewarded, xpRewarded, err := usecase.EnsureMakeMove(
 		c.Request().Context(),
 		h.Pool,
 		req.SessionID,
@@ -50,6 +51,7 @@ func (h *Handler) MakeMoveHandler(c echo.Context) error {
 
 	resp := MakeMoveResponse{
 		Boards:        boards,
+		IsAiMove:      isAiMove,
 		Gameover:      gameOver,
 		Winner:        winner,
 		CoinsRewarded: coinsRewarded,

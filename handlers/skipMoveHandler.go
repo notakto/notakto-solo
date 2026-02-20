@@ -15,6 +15,7 @@ type SkipMoveRequest struct {
 }
 type SkipMoveResponse struct {
 	Boards        []int32 `json:"boards"`
+	IsAiMove      []bool  `json:"isAiMove"`
 	Gameover      bool    `json:"gameover"`
 	Winner        bool    `json:"winner"`
 	CoinsRewarded int32   `json:"coinsRewarded"`
@@ -33,7 +34,7 @@ func (h *Handler) SkipMoveHandler(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-	boards, gameOver, winner, coinsRewarded, xpRewarded, err := usecase.EnsureSkipMove(
+	boards, isAiMove, gameOver, winner, coinsRewarded, xpRewarded, err := usecase.EnsureSkipMove(
 		c.Request().Context(),
 		h.Pool,
 		req.SessionID,
@@ -45,6 +46,7 @@ func (h *Handler) SkipMoveHandler(c echo.Context) error {
 
 	resp := SkipMoveResponse{
 		Boards:        boards,
+		IsAiMove:      isAiMove,
 		Gameover:      gameOver,
 		Winner:        winner,
 		CoinsRewarded: coinsRewarded,
