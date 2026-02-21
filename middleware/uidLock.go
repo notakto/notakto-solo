@@ -9,17 +9,9 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rakshitg600/notakto-solo/contextkey"
+	"github.com/rakshitg600/notakto-solo/lua"
 	"github.com/redis/go-redis/v9"
 )
-
-// Lua script: delete the key only if the value (request identifier) matches.
-// example, reqA acquired lock then got timeout then B acquired and A deleted the key ==> this lua solves this bug
-var unlockScript = redis.NewScript(`
-if redis.call("GET", KEYS[1]) == ARGV[1] then
-	return redis.call("DEL", KEYS[1])
-end
-return 0
-`)
 
 const (
 	lockTTL       = 10 * time.Second
@@ -71,7 +63,7 @@ func UIDLockMiddleware(rdb *redis.Client) echo.MiddlewareFunc {
 			defer func() {
 				unlockCtx, unlockCancel := context.WithTimeout(context.Background(), 2*time.Second)
 				defer unlockCancel()
-				if err := unlockScript.Run(unlockCtx, rdb, []string{lockKey}, lockVal).Err(); err != nil {
+				if err := lua.Unlock.Run(unlockCtx, rdb, []string{lockKey}, lockVal).Err(); err != nil {
 					c.Logger().Errorf("uid-lock: failed to unlock %s: %v", lockKey, err)
 				}
 			}()
