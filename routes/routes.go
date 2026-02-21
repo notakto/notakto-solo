@@ -18,7 +18,7 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 	firebaseAuth := middleware.FirebaseAuthMiddleware(authClient)
 	uidRateLimit := middleware.UIDRateLimitMiddleware(valkeyClient, 60)
 	uidLock := middleware.UIDLockMiddleware(valkeyClient)
-	healthCooldown := middleware.CooldownMiddleware(5 * time.Second)
+	healthCooldown := middleware.CooldownMiddleware(100 * time.Microsecond)
 
 	handler := handlers.NewHandler(pool, authClient)
 
