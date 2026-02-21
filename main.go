@@ -12,6 +12,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/api/option"
 
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
@@ -67,7 +68,18 @@ func main() {
 		log.Fatal("failed to connect to database:", err)
 	}
 
-	routes.SetupRoutes(e, pool, authClient)
+	// Initialize Valkey (Redis-compatible) client
+	valkeyURL := config.MustGetEnv("VALKEY_URL")
+	valkeyOpts, err := redis.ParseURL(valkeyURL)
+	if err != nil {
+		log.Fatal("failed to parse VALKEY_URL:", err)
+	}
+	valkeyClient := redis.NewClient(valkeyOpts)
+	if err := valkeyClient.Ping(ctx).Err(); err != nil {
+		log.Fatal("failed to connect to Valkey:", err)
+	}
+
+	routes.SetupRoutes(e, pool, authClient, valkeyClient)
 	port := config.MustGetEnv("PORT")
 	serverErr := make(chan error, 1)
 	go func() {
@@ -90,6 +102,10 @@ func main() {
 
 	if err := e.Shutdown(shutdownCtx); err != nil {
 		log.Println("server shutdown failed:", err)
+	}
+	log.Println("closing Valkey client...")
+	if err := valkeyClient.Close(); err != nil {
+		log.Println("Valkey close error:", err)
 	}
 	log.Println("closing database pool...")
 	pool.Close()

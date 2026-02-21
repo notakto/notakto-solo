@@ -52,6 +52,11 @@ func InitEnv() error {
 			return
 		}
 
+		if err := loadResolved("VALKEY_URL"); err != nil {
+			initErr = err
+			return
+		}
+
 	})
 	return initErr
 }
@@ -63,6 +68,8 @@ func resolveKey(key string) string {
 			return "DATABASE_DEV_URL"
 		case "FIREBASE_CREDENTIALS_JSON":
 			return "FIREBASE_DEV_CREDENTIALS_JSON"
+		case "VALKEY_URL":
+			return "VALKEY_DEV_URL"
 		}
 	}
 	return key
