@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"time"
+
 	"firebase.google.com/go/v4/auth"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -16,12 +18,13 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 	firebaseAuth := middleware.FirebaseAuthMiddleware(authClient)
 	uidRateLimit := middleware.UIDRateLimitMiddleware(valkeyClient, 60)
 	uidLock := middleware.UIDLockMiddleware(valkeyClient)
+	healthCooldown := middleware.CooldownMiddleware(5 * time.Second)
 
 	handler := handlers.NewHandler(pool, authClient)
 
-	// ── Health (no auth, no rate limit) ──
-	e.HEAD("/v1/health-head", handler.HealthHeadHandler)
-	e.GET("/v1/health-get", handler.HealthGetHandler)
+	// ── Health (cooldown-protected, no auth, no external deps) ──
+	e.HEAD("/v1/health-head", handler.HealthHeadHandler, healthCooldown)
+	e.GET("/v1/health-get", handler.HealthGetHandler, healthCooldown)
 
 	// ── Authenticated routes ──
 	e.POST("/v1/sign-in", handler.SignInHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)

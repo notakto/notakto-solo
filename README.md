@@ -12,14 +12,15 @@ Backend server for **Notakto** — a misere tic-tac-toe game where a player comp
 
 ## Tech Stack
 
-| Component       | Technology                          |
-|-----------------|-------------------------------------|
-| Language        | Go 1.24                             |
+| Component       | Technology                         |
+|-----------------|------------------------------------|
+| Language        | Go 1.24                            |
 | HTTP Framework  | [Echo v4](https://echo.labstack.com/) |
 | Database        | PostgreSQL (via [pgx](https://github.com/jackc/pgx) + [sqlc](https://sqlc.dev/)) |
-| Auth            | Firebase Authentication              |
-| Distributed Lock| Redis / Valkey                      |
-| CI/CD           | GitHub Actions                      |
+| Auth            | Firebase Authentication             |
+| Rate Limiting   | Redis / Valkey (IP + UID) |
+| Distributed Lock| Redis / Valkey                     |
+| CI/CD           | GitHub Actions                     |
 
 ## Project Structure
 
@@ -28,7 +29,7 @@ Backend server for **Notakto** — a misere tic-tac-toe game where a player comp
 ├── main.go              # Entry point — server setup, DB/Redis/Firebase init
 ├── config/              # Environment config and game defaults
 ├── routes/              # Route registration
-├── middleware/           # CORS, Firebase auth, per-user distributed lock
+├── middleware/           # CORS, rate limiting, Firebase auth, per-user lock
 ├── handlers/            # HTTP handlers (request/response binding)
 ├── usecase/             # Business logic (transactions, validations)
 ├── store/               # Database access layer (thin wrappers over sqlc)
@@ -102,13 +103,22 @@ sqlc generate
 ## Architecture
 
 ```
-Request → CORS → Firebase Auth → UID Lock → Handler → Usecase → Store → PostgreSQL
-                                    ↑
-                                  Valkey
+Request → CORS → IP Rate Limit → Firebase Auth → UID Rate Limit → UID Lock → Handler → Usecase → Store → PostgreSQL
+                      ↑                                ↑              ↑
+                    Valkey ─────────────────────────────┘──────────────┘
 ```
 
+Health endpoints use a separate, lighter path:
+
+```
+Request → CORS → In-Memory Cooldown → Handler
+```
+
+- **IP Rate Limit Middleware** — sliding-window rate limit per IP via Redis/Valkey (120 req window).
 - **Firebase Auth Middleware** — verifies JWT, injects UID into request context.
+- **UID Rate Limit Middleware** — sliding-window rate limit per authenticated UID via Redis/Valkey (60 req window).
 - **UID Lock Middleware** — acquires a per-user distributed lock via Redis/Valkey to prevent concurrent mutations.
+- **In-Memory Cooldown Middleware** — global atomic cooldown (5s) for health endpoints; pure in-memory, zero external dependencies.
 - **Usecase Layer** — runs business logic inside serializable Postgres transactions.
 - **Store Layer** — thin wrappers over sqlc-generated queries with slow-query logging (>2s).
 
