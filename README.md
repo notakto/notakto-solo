@@ -108,17 +108,11 @@ Request → CORS → IP Rate Limit → Firebase Auth → UID Rate Limit → UID 
                     Valkey ─────────────────────────────┘──────────────┘
 ```
 
-Health endpoints use a separate, lighter path:
-
-```
-Request → CORS → In-Memory Cooldown → Handler
-```
 
 - **IP Rate Limit Middleware** — sliding-window rate limit per IP via Redis/Valkey (120 req window).
 - **Firebase Auth Middleware** — verifies JWT, injects UID into request context.
 - **UID Rate Limit Middleware** — sliding-window rate limit per authenticated UID via Redis/Valkey (60 req window).
 - **UID Lock Middleware** — acquires a per-user distributed lock via Redis/Valkey to prevent concurrent mutations.
-- **In-Memory Cooldown Middleware** — global atomic cooldown (5s) for health endpoints; pure in-memory, zero external dependencies.
 - **Usecase Layer** — runs business logic inside serializable Postgres transactions.
 - **Store Layer** — thin wrappers over sqlc-generated queries with slow-query logging (>2s).
 
