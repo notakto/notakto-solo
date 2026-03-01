@@ -19,13 +19,11 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 	firebaseAuth := middleware.FirebaseAuthMiddleware(authClient)
 	uidRateLimit := middleware.UIDRateLimitMiddleware(valkeyClient, 60)
 	uidLock := middleware.UIDLockMiddleware(valkeyClient)
-	healthCooldown := middleware.CooldownMiddleware(100 * time.Microsecond)
 
 	handler := handlers.NewHandler(pool, authClient, commerceClient, webhookSecret)
 
-	// ── Health (cooldown-protected, no auth, no external deps) ──
-	e.HEAD("/v1/health-head", handler.HealthHeadHandler, healthCooldown)
-	e.GET("/v1/health-get", handler.HealthGetHandler, healthCooldown)
+	e.HEAD("/v1/health-head", handler.HealthHeadHandler)
+	e.GET("/v1/health-get", handler.HealthGetHandler)
 
 	// ── Authenticated routes ──
 	e.POST("/v1/sign-in", handler.SignInHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
