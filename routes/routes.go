@@ -1,10 +1,8 @@
 package routes
 
 import (
-	"time"
-
-	commerce "github.com/coinbase-samples/commerce-sdk-go"
 	"firebase.google.com/go/v4/auth"
+	commerce "github.com/coinbase-samples/commerce-sdk-go"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
