@@ -4,8 +4,17 @@ CREATE TABLE Payment (
     id TEXT PRIMARY KEY,
     uid VARCHAR(36) NOT NULL,
     package_id TEXT NOT NULL,
-    coins INTEGER NOT NULL,
-    amount_cents INTEGER NOT NULL,
+CREATE TABLE Payment (
+    id TEXT PRIMARY KEY,
+    uid VARCHAR(36) NOT NULL,
+    package_id TEXT NOT NULL,
+    coins INTEGER NOT NULL CHECK (coins > 0),
+    amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+    status TEXT NOT NULL DEFAULT 'created',
+    hosted_url TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ...
+);
     status TEXT NOT NULL DEFAULT 'created',
     hosted_url TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
