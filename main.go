@@ -16,6 +16,7 @@ import (
 	"google.golang.org/api/option"
 
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
+	"github.com/rakshitg600/notakto-solo/coinbase"
 	"github.com/rakshitg600/notakto-solo/config"
 	appMiddleware "github.com/rakshitg600/notakto-solo/middleware"
 	"github.com/rakshitg600/notakto-solo/routes"
@@ -79,7 +80,12 @@ func main() {
 		log.Fatal("failed to connect to Valkey:", err)
 	}
 
-	routes.SetupRoutes(e, pool, authClient, valkeyClient)
+	// Initialize Coinbase Commerce client
+	coinbaseAPIKey := config.MustGetEnv("COINBASE_COMMERCE_API_KEY")
+	commerceClient := coinbase.NewCommerceClient(coinbaseAPIKey)
+	webhookSecret := config.MustGetEnv("COINBASE_COMMERCE_WEBHOOK_SECRET")
+
+	routes.SetupRoutes(e, pool, authClient, valkeyClient, commerceClient, webhookSecret)
 	port := config.MustGetEnv("PORT")
 	serverErr := make(chan error, 1)
 	go func() {

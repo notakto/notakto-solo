@@ -3,6 +3,7 @@ package routes
 import (
 	"time"
 
+	commerce "github.com/coinbase-samples/commerce-sdk-go"
 	"firebase.google.com/go/v4/auth"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -12,7 +13,7 @@ import (
 	"github.com/rakshitg600/notakto-solo/middleware"
 )
 
-func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valkeyClient *redis.Client) {
+func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valkeyClient *redis.Client, commerceClient *commerce.Client, webhookSecret string) {
 
 	ipRateLimit := middleware.IPRateLimitMiddleware(valkeyClient, 120)
 	firebaseAuth := middleware.FirebaseAuthMiddleware(authClient)
@@ -20,7 +21,7 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 	uidLock := middleware.UIDLockMiddleware(valkeyClient)
 	healthCooldown := middleware.CooldownMiddleware(100 * time.Microsecond)
 
-	handler := handlers.NewHandler(pool, authClient)
+	handler := handlers.NewHandler(pool, authClient, commerceClient, webhookSecret)
 
 	// ── Health (cooldown-protected, no auth, no external deps) ──
 	e.HEAD("/v1/health-head", handler.HealthHeadHandler, healthCooldown)
@@ -35,4 +36,11 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 	e.POST("/v1/quit-game", handler.QuitGameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 	e.GET("/v1/get-wallet", handler.GetWalletHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 	e.POST("/v1/update-name", handler.UpdateNameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
+
+	// ── Payment routes ──
+	e.POST("/v1/create-charge", handler.CreateChargeHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
+	e.GET("/v1/payment-status", handler.PaymentStatusHandler, ipRateLimit, firebaseAuth, uidRateLimit)
+
+	// ── Webhook (no Firebase auth, IP rate limit only) ──
+	e.POST("/v1/coinbase-webhook", handler.WebhookHandler, ipRateLimit)
 }

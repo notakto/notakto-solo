@@ -57,6 +57,16 @@ func InitEnv() error {
 			return
 		}
 
+		if err := loadResolved("COINBASE_COMMERCE_API_KEY"); err != nil {
+			initErr = err
+			return
+		}
+
+		if err := loadResolved("COINBASE_COMMERCE_WEBHOOK_SECRET"); err != nil {
+			initErr = err
+			return
+		}
+
 	})
 	return initErr
 }
@@ -70,6 +80,10 @@ func resolveKey(key string) string {
 			return "FIREBASE_DEV_CREDENTIALS_JSON"
 		case "VALKEY_URL":
 			return "VALKEY_DEV_URL"
+		case "COINBASE_COMMERCE_API_KEY":
+			return "COINBASE_COMMERCE_DEV_API_KEY"
+		case "COINBASE_COMMERCE_WEBHOOK_SECRET":
+			return "COINBASE_COMMERCE_DEV_WEBHOOK_SECRET"
 		}
 	}
 	return key
