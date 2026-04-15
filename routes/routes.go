@@ -8,16 +8,17 @@ import (
 
 	"github.com/rakshitg600/notakto-solo/handlers"
 	"github.com/rakshitg600/notakto-solo/middleware"
+	"github.com/rakshitg600/notakto-solo/nowpayments"
 )
 
-func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valkeyClient *redis.Client) {
+func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valkeyClient *redis.Client, npClient *nowpayments.Client, ipnSecret string) {
 
 	ipRateLimit := middleware.IPRateLimitMiddleware(valkeyClient, 120)
 	firebaseAuth := middleware.FirebaseAuthMiddleware(authClient)
 	uidRateLimit := middleware.UIDRateLimitMiddleware(valkeyClient, 60)
 	uidLock := middleware.UIDLockMiddleware(valkeyClient)
 
-	handler := handlers.NewHandler(pool, authClient)
+	handler := handlers.NewHandler(pool, authClient, npClient, ipnSecret)
 
 	e.HEAD("/v1/health-head", handler.HealthHeadHandler)
 	e.GET("/v1/health-get", handler.HealthGetHandler)
@@ -31,4 +32,11 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 	e.POST("/v1/quit-game", handler.QuitGameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 	e.GET("/v1/get-wallet", handler.GetWalletHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 	e.POST("/v1/update-name", handler.UpdateNameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
+
+	// ── Payment routes ──
+	e.POST("/v1/create-charge", handler.CreateChargeHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
+	e.GET("/v1/payment-status", handler.PaymentStatusHandler, ipRateLimit, firebaseAuth, uidRateLimit)
+
+	// ── Webhook (no Firebase auth, IP rate limit only) ──
+	e.POST("/v1/nowpayments-webhook", handler.WebhookHandler, ipRateLimit)
 }

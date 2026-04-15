@@ -10,15 +10,20 @@ import (
 
 type Querier interface {
 	CreateInitialSessionState(ctx context.Context, arg CreateInitialSessionStateParams) error
+	CreatePayment(ctx context.Context, arg CreatePaymentParams) error
 	CreatePlayer(ctx context.Context, arg CreatePlayerParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateWallet(ctx context.Context, arg CreateWalletParams) error
 	GetLatestSessionStateByPlayerId(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdRow, error)
 	GetLatestSessionStateByPlayerIdWithLock(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdWithLockRow, error)
+	GetPaymentById(ctx context.Context, id string) (Payment, error)
+	GetPaymentByIdWithLock(ctx context.Context, id string) (Payment, error)
+	GetPaymentsByUid(ctx context.Context, uid string) ([]Payment, error)
 	GetPlayerById(ctx context.Context, uid string) (Player, error)
 	GetWalletByPlayerId(ctx context.Context, uid string) (Wallet, error)
 	GetWalletByPlayerIdWithLock(ctx context.Context, uid string) (Wallet, error)
 	QuitGameSession(ctx context.Context, sessionID string) error
+	UpdatePaymentStatusIfNotConfirmed(ctx context.Context, arg UpdatePaymentStatusIfNotConfirmedParams) (int64, error)
 	UpdatePlayerName(ctx context.Context, arg UpdatePlayerNameParams) (Player, error)
 	UpdateSessionAfterGameover(ctx context.Context, arg UpdateSessionAfterGameoverParams) error
 	UpdateSessionAfterQuitGame(ctx context.Context, sessionID string) error
