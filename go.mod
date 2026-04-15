@@ -6,7 +6,6 @@ require github.com/labstack/echo/v4 v4.15.0
 
 require (
 	firebase.google.com/go/v4 v4.19.0
-	github.com/coinbase-samples/commerce-sdk-go v0.1.3
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.17.3
 	google.golang.org/api v0.265.0

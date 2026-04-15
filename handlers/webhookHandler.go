@@ -8,58 +8,62 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/rakshitg600/notakto-solo/coinbase"
+	"github.com/rakshitg600/notakto-solo/nowpayments"
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
-type WebhookEvent struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
-	Data struct {
-		ID string `json:"id"`
-	} `json:"data"`
-}
-
-type WebhookPayload struct {
-	Event WebhookEvent `json:"event"`
+// NOWPaymentsIPN is the flat JSON body NOWPayments posts to our callback.
+// Only the fields we actually use are typed; the rest are ignored. We use
+// json.Number for numeric identifiers to preserve precision and to cover
+// NOWPayments emitting them either as quoted strings or bare numbers across
+// endpoints.
+type NOWPaymentsIPN struct {
+	PaymentID     json.Number `json:"payment_id"`
+	PaymentStatus string      `json:"payment_status"`
+	OrderID       string      `json:"order_id"`
+	InvoiceID     json.Number `json:"invoice_id"`
 }
 
 func (h *Handler) WebhookHandler(c echo.Context) error {
-	// Read raw body bytes before any parsing — needed for HMAC signature verification against the exact payload Coinbase signed. Using c.Bind() would consume the body without preserving the original bytes.
+	// Read raw body bytes before any parsing — needed for HMAC signature
+	// verification against the exact payload NOWPayments signed.
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		log.Printf("webhook: failed to read body: %v", err)
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	signature := c.Request().Header.Get("X-CC-Webhook-Signature")
+	signature := c.Request().Header.Get("x-nowpayments-sig")
 	if signature == "" {
 		log.Printf("webhook: missing signature header")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	if !coinbase.VerifyWebhookSignature(h.WebhookSecret, signature, body) {
+	if !nowpayments.VerifyIPNSignature(h.IPNSecret, signature, body) {
 		log.Printf("webhook: invalid signature")
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	var payload WebhookPayload
+	var payload NOWPaymentsIPN
 	if err := json.Unmarshal(body, &payload); err != nil {
 		log.Printf("webhook: failed to parse payload: %v", err)
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	eventType := payload.Event.Type
-	chargeID := payload.Event.Data.ID
-	if chargeID == "" {
-		log.Printf("webhook: missing charge ID in event")
+	if payload.OrderID == "" {
+		log.Printf("webhook: missing order_id in payload (payment_id=%s)", payload.PaymentID.String())
+		return c.NoContent(http.StatusBadRequest)
+	}
+	if payload.PaymentStatus == "" {
+		log.Printf("webhook: missing payment_status for order %s", payload.OrderID)
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	log.Printf("webhook: received event %s for charge %s", eventType, chargeID)
+	log.Printf("webhook: received status %s for order %s (payment_id=%s)",
+		payload.PaymentStatus, payload.OrderID, payload.PaymentID.String())
 
-	if err := usecase.EnsureProcessWebhook(c.Request().Context(), h.Pool, eventType, chargeID); err != nil {
-		log.Printf("webhook: processing failed for charge %s: %v", chargeID, err)
+	if err := usecase.EnsureProcessWebhook(c.Request().Context(), h.Pool, payload.PaymentStatus, payload.OrderID); err != nil {
+		log.Printf("webhook: processing failed for order %s: %v", payload.OrderID, err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 

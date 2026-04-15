@@ -30,6 +30,7 @@ go.work.sum
 
 # Firebase service account keys
 *-service-account*.json
+*adminsdk*.json
 
 # Editor/IDE
 .idea/

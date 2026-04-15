@@ -12,33 +12,44 @@ import (
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
-func EnsureProcessWebhook(ctx context.Context, pool *pgxpool.Pool, eventType string, chargeID string) error {
-	switch eventType {
-	case "charge:pending":
-		return processChargePending(ctx, pool, chargeID)
-	case "charge:confirmed":
-		return processChargeConfirmed(ctx, pool, chargeID)
-	case "charge:failed":
-		return processChargeFailed(ctx, pool, chargeID)
+// EnsureProcessWebhook maps a NOWPayments IPN payment_status to an internal
+// Payment row status and credits coins when the payment is finalized.
+//
+// Status semantics (from NOWPayments docs):
+//   - waiting / confirming / confirmed / sending → payment in-flight, mark pending
+//   - finished → funds settled in our wallet, credit coins
+//   - failed / refunded / expired → terminal failure
+//   - partially_paid → user underpaid; terminal, logged for manual review
+func EnsureProcessWebhook(ctx context.Context, pool *pgxpool.Pool, paymentStatus string, orderID string) error {
+	switch paymentStatus {
+	case "waiting", "confirming", "confirmed", "sending":
+		return processPaymentPending(ctx, pool, orderID)
+	case "finished":
+		return processPaymentFinished(ctx, pool, orderID)
+	case "failed", "refunded", "expired":
+		return processPaymentFailed(ctx, pool, orderID, paymentStatus)
+	case "partially_paid":
+		log.Printf("webhook: order %s partially_paid — marking failed, needs manual review", orderID)
+		return processPaymentFailed(ctx, pool, orderID, paymentStatus)
 	default:
-		log.Printf("ignoring unhandled webhook event type: %s", eventType)
+		log.Printf("ignoring unhandled nowpayments payment_status: %s", paymentStatus)
 		return nil
 	}
 }
 
-func processChargePending(ctx context.Context, pool *pgxpool.Pool, chargeID string) error {
+func processPaymentPending(ctx context.Context, pool *pgxpool.Pool, orderID string) error {
 	queries := db.New(pool)
-	rowsAffected, err := store.UpdatePaymentStatusIfNotConfirmed(ctx, queries, chargeID, "pending")
+	rowsAffected, err := store.UpdatePaymentStatusIfNotConfirmed(ctx, queries, orderID, "pending")
 	if err != nil {
 		return fmt.Errorf("failed to update payment to pending: %w", err)
 	}
 	if rowsAffected == 0 {
-		log.Printf("charge %s already confirmed or not found, skipping pending update", chargeID)
+		log.Printf("order %s already confirmed or not found, skipping pending update", orderID)
 	}
 	return nil
 }
 
-func processChargeConfirmed(ctx context.Context, pool *pgxpool.Pool, chargeID string) error {
+func processPaymentFinished(ctx context.Context, pool *pgxpool.Pool, orderID string) error {
 	queries := db.New(pool)
 
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
@@ -52,25 +63,25 @@ func processChargeConfirmed(ctx context.Context, pool *pgxpool.Pool, chargeID st
 
 	qtx := queries.WithTx(tx)
 
-	payment, err := store.GetPaymentByIdWithLock(ctx, qtx, chargeID)
+	payment, err := store.GetPaymentByIdWithLock(ctx, qtx, orderID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("payment not found for charge: %s", chargeID)
+			return fmt.Errorf("payment not found for order: %s", orderID)
 		}
 		return fmt.Errorf("failed to lock payment row: %w", err)
 	}
 
 	if payment.Status == "confirmed" {
-		log.Printf("charge %s already confirmed, skipping", chargeID)
+		log.Printf("order %s already confirmed, skipping", orderID)
 		return nil
 	}
 
-	rowsAffected, err := store.UpdatePaymentStatusIfNotConfirmed(ctx, qtx, chargeID, "confirmed")
+	rowsAffected, err := store.UpdatePaymentStatusIfNotConfirmed(ctx, qtx, orderID, "confirmed")
 	if err != nil {
 		return fmt.Errorf("failed to update payment to confirmed: %w", err)
 	}
 	if rowsAffected == 0 {
-		log.Printf("charge %s status update returned 0 rows, already confirmed", chargeID)
+		log.Printf("order %s status update returned 0 rows, already confirmed", orderID)
 		return nil
 	}
 
@@ -83,18 +94,18 @@ func processChargeConfirmed(ctx context.Context, pool *pgxpool.Pool, chargeID st
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	log.Printf("charge %s confirmed: credited %d coins to uid %s", chargeID, payment.Coins, payment.Uid)
+	log.Printf("order %s finished: credited %d coins to uid %s", orderID, payment.Coins, payment.Uid)
 	return nil
 }
 
-func processChargeFailed(ctx context.Context, pool *pgxpool.Pool, chargeID string) error {
+func processPaymentFailed(ctx context.Context, pool *pgxpool.Pool, orderID string, reason string) error {
 	queries := db.New(pool)
-	rowsAffected, err := store.UpdatePaymentStatusIfNotConfirmed(ctx, queries, chargeID, "failed")
+	rowsAffected, err := store.UpdatePaymentStatusIfNotConfirmed(ctx, queries, orderID, "failed")
 	if err != nil {
-		return fmt.Errorf("failed to update payment to failed: %w", err)
+		return fmt.Errorf("failed to update payment to failed (%s): %w", reason, err)
 	}
 	if rowsAffected == 0 {
-		log.Printf("charge %s already confirmed or not found, skipping failed update", chargeID)
+		log.Printf("order %s already confirmed or not found, skipping failed update (reason: %s)", orderID, reason)
 	}
 	return nil
 }

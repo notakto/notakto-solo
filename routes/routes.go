@@ -2,23 +2,23 @@ package routes
 
 import (
 	"firebase.google.com/go/v4/auth"
-	commerce "github.com/coinbase-samples/commerce-sdk-go"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/rakshitg600/notakto-solo/handlers"
 	"github.com/rakshitg600/notakto-solo/middleware"
+	"github.com/rakshitg600/notakto-solo/nowpayments"
 )
 
-func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valkeyClient *redis.Client, commerceClient *commerce.Client, webhookSecret string) {
+func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valkeyClient *redis.Client, npClient *nowpayments.Client, ipnSecret string) {
 
 	ipRateLimit := middleware.IPRateLimitMiddleware(valkeyClient, 120)
 	firebaseAuth := middleware.FirebaseAuthMiddleware(authClient)
 	uidRateLimit := middleware.UIDRateLimitMiddleware(valkeyClient, 60)
 	uidLock := middleware.UIDLockMiddleware(valkeyClient)
 
-	handler := handlers.NewHandler(pool, authClient, commerceClient, webhookSecret)
+	handler := handlers.NewHandler(pool, authClient, npClient, ipnSecret)
 
 	e.HEAD("/v1/health-head", handler.HealthHeadHandler)
 	e.GET("/v1/health-get", handler.HealthGetHandler)
@@ -38,5 +38,5 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 	e.GET("/v1/payment-status", handler.PaymentStatusHandler, ipRateLimit, firebaseAuth, uidRateLimit)
 
 	// ── Webhook (no Firebase auth, IP rate limit only) ──
-	e.POST("/v1/coinbase-webhook", handler.WebhookHandler, ipRateLimit)
+	e.POST("/v1/nowpayments-webhook", handler.WebhookHandler, ipRateLimit)
 }

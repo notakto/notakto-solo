@@ -35,7 +35,7 @@ func (h *Handler) CreateChargeHandler(c echo.Context) error {
 
 	log.Printf("CreateChargeHandler called for uid: %s, package: %s", uid, req.PackageID)
 
-	chargeID, hostedURL, err := usecase.EnsureCreateCharge(c.Request().Context(), h.Pool, h.CommerceClient, req.PackageID)
+	chargeID, hostedURL, err := usecase.EnsureCreateCharge(c.Request().Context(), h.Pool, h.NowpaymentsClient, req.PackageID)
 	if err != nil {
 		c.Logger().Errorf("EnsureCreateCharge failed: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create charge")
