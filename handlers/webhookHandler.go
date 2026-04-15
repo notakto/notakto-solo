@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -12,12 +13,17 @@ import (
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
-// NOWPaymentsIPN is the flat JSON body NOWPayments posts to our callback.
+// maxWebhookBodySize caps IPN payloads. NOWPayments bodies are ~1 KB; the
+// limit exists to prevent unbounded allocation from a hostile or misbehaving
+// caller, not to match any protocol field.
+const maxWebhookBodySize = 64 << 10 // 64 KiB
+
+// WebhookRequest is the flat JSON body NOWPayments posts to our callback.
 // Only the fields we actually use are typed; the rest are ignored. We use
 // json.Number for numeric identifiers to preserve precision and to cover
 // NOWPayments emitting them either as quoted strings or bare numbers across
 // endpoints.
-type NOWPaymentsIPN struct {
+type WebhookRequest struct {
 	PaymentID     json.Number `json:"payment_id"`
 	PaymentStatus string      `json:"payment_status"`
 	OrderID       string      `json:"order_id"`
@@ -26,9 +32,16 @@ type NOWPaymentsIPN struct {
 
 func (h *Handler) WebhookHandler(c echo.Context) error {
 	// Read raw body bytes before any parsing — needed for HMAC signature
-	// verification against the exact payload NOWPayments signed.
+	// verification against the exact payload NOWPayments signed. Wrap with
+	// MaxBytesReader so a hostile caller can't force unbounded allocation.
+	c.Request().Body = http.MaxBytesReader(c.Response(), c.Request().Body, maxWebhookBodySize)
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			log.Printf("webhook: body exceeded %d bytes", maxWebhookBodySize)
+			return c.NoContent(http.StatusRequestEntityTooLarge)
+		}
 		log.Printf("webhook: failed to read body: %v", err)
 		return c.NoContent(http.StatusBadRequest)
 	}
@@ -44,7 +57,7 @@ func (h *Handler) WebhookHandler(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	var payload NOWPaymentsIPN
+	var payload WebhookRequest
 	if err := json.Unmarshal(body, &payload); err != nil {
 		log.Printf("webhook: failed to parse payload: %v", err)
 		return c.NoContent(http.StatusBadRequest)

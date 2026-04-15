@@ -8,9 +8,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/contextkey"
-	"github.com/rakshitg600/notakto-solo/store"
+	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
 type PaymentStatusResponse struct {
@@ -35,18 +34,16 @@ func (h *Handler) PaymentStatusHandler(c echo.Context) error {
 
 	log.Printf("PaymentStatusHandler called for uid: %s, chargeId: %s", uid, chargeID)
 
-	queries := db.New(h.Pool)
-	payment, err := store.GetPaymentById(c.Request().Context(), queries, chargeID)
+	payment, err := usecase.EnsureGetPaymentStatus(c.Request().Context(), h.Pool, chargeID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return echo.NewHTTPError(http.StatusNotFound, "payment not found")
 		}
-		c.Logger().Errorf("GetPaymentById failed: %v", err)
+		if errors.Is(err, usecase.ErrPaymentForbidden) {
+			return echo.NewHTTPError(http.StatusForbidden, "access denied")
+		}
+		c.Logger().Errorf("EnsureGetPaymentStatus failed: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch payment")
-	}
-
-	if payment.Uid != uid {
-		return echo.NewHTTPError(http.StatusForbidden, "access denied")
 	}
 
 	return c.JSON(http.StatusOK, PaymentStatusResponse{
