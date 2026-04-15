@@ -5,8 +5,22 @@
 package db
 
 import (
+	"time"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type Payment struct {
+	ID          string    `json:"id"`
+	Uid         string    `json:"uid"`
+	PackageID   string    `json:"package_id"`
+	Coins       int32     `json:"coins"`
+	AmountCents int32     `json:"amount_cents"`
+	Status      string    `json:"status"`
+	HostedUrl   string    `json:"hosted_url"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
 
 type Player struct {
 	Uid        string      `json:"uid"`

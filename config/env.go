@@ -57,6 +57,16 @@ func InitEnv() error {
 			return
 		}
 
+		if err := loadResolved("NOWPAYMENTS_API_KEY"); err != nil {
+			initErr = err
+			return
+		}
+
+		if err := loadResolved("NOWPAYMENTS_IPN_SECRET"); err != nil {
+			initErr = err
+			return
+		}
+
 	})
 	return initErr
 }
@@ -70,6 +80,10 @@ func resolveKey(key string) string {
 			return "FIREBASE_DEV_CREDENTIALS_JSON"
 		case "VALKEY_URL":
 			return "VALKEY_DEV_URL"
+		case "NOWPAYMENTS_API_KEY":
+			return "NOWPAYMENTS_DEV_API_KEY"
+		case "NOWPAYMENTS_IPN_SECRET":
+			return "NOWPAYMENTS_DEV_IPN_SECRET"
 		}
 	}
 	return key
