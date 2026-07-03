@@ -58,14 +58,14 @@ func main() {
 	poolConfig.MaxConnIdleTime = 5 * time.Minute
 	poolConfig.HealthCheckPeriod = 30 * time.Second
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	dbCtx, dbCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer dbCancel()
+	pool, err := pgxpool.NewWithConfig(dbCtx, poolConfig)
 	if err != nil {
 		log.Fatal("failed to create pgx pool:", err)
 	}
 
-	if err := pool.Ping(ctx); err != nil {
+	if err := pool.Ping(dbCtx); err != nil {
 		log.Fatal("failed to connect to database:", err)
 	}
 
@@ -76,7 +76,9 @@ func main() {
 		log.Fatal("failed to parse VALKEY_URL:", err)
 	}
 	valkeyClient := redis.NewClient(valkeyOpts)
-	if err := valkeyClient.Ping(ctx).Err(); err != nil {
+	valkeyCtx, valkeyCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer valkeyCancel()
+	if err := valkeyClient.Ping(valkeyCtx).Err(); err != nil {
 		log.Fatal("failed to connect to Valkey:", err)
 	}
 
