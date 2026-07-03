@@ -4,7 +4,7 @@
 4. change the data type of boards and gamehistory to array of bool only and the array too kept 1 D only - [x]
 5. make the signin endpoint - [x]
 6. handle profile pic in player table - [x]
-7. 15 minutes of playable time instead of total elapsed time - [ ]
+7. 15 minutes of playable time instead of total elapsed time - [ ] (calculate time spent in between request received and response using defer )
 8. Find race conditions and manage concurrency - [ ]
 9. Find memory leaks - [ ]
 10. middlewares and their chaining and their database tables - [ ]
