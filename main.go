@@ -10,6 +10,7 @@ import (
 	"time"
 
 	firebase "firebase.google.com/go/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
@@ -51,6 +52,9 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to parse DATABASE_URL:", err)
 	}
+	// Supabase's pooler can reuse backend connections across sessions, so avoid
+	// named prepared statements. QueryExecModeExec keeps pgx off the statement cache.
+	poolConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
 	// Pool tuning (adjust as needed)
 	poolConfig.MaxConns = 10
 	poolConfig.MinConns = 2
