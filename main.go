@@ -42,7 +42,7 @@ func main() {
 
 	e := echo.New()
 	e.Use(appMiddleware.CORSMiddleware)
-	e.Use(echoMiddleware.ContextTimeout(10 * time.Second)) // only for http, not for websockets,etc
+	e.Use(echoMiddleware.ContextTimeout(8 * time.Second)) // only for http, not for websockets,etc
 	// Set server timeouts
 	e.Server.ReadTimeout = 5 * time.Second   //Max time to read the entire incoming request (headers + body)
 	e.Server.WriteTimeout = 10 * time.Second //Max time to write the response back to client which includes handler execution + response write

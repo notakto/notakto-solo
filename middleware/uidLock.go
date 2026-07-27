@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	lockTTL       = 10 * time.Second
+	lockTTL       = 12 * time.Second
 	lockRetryWait = 50 * time.Millisecond
 )
 
