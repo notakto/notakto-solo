@@ -25,8 +25,9 @@ var (
 func InitEnv() error {
 	var initErr error
 	initOnce.Do(func() {
-		// Load .env for local/dev
-		_ = godotenv.Load()
+		// Load .env for local/dev and let it override stale shell exports.
+		// This keeps checked-in local config authoritative when both exist.
+		_ = godotenv.Overload()
 
 		// Detect environment mode
 		if os.Getenv("RENDER_GIT_PULL_REQUEST") != "" {

@@ -20,16 +20,16 @@ var CoinPackages = map[string]CoinPackage{
 	"pkg_500": {
 		ID:          "pkg_500",
 		Coins:       500,
-		AmountCents: 500,
+		AmountCents: 99,
 	},
 	"pkg_1200": {
 		ID:          "pkg_1200",
 		Coins:       1200,
-		AmountCents: 1000,
+		AmountCents: 199,
 	},
 	"pkg_3000": {
 		ID:          "pkg_3000",
 		Coins:       3000,
-		AmountCents: 2000,
+		AmountCents: 499,
 	},
 }
