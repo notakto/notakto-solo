@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -40,7 +41,7 @@ func main() {
 
 	e := echo.New()
 	e.Use(appMiddleware.CORSMiddleware)
-	e.Use(echoMiddleware.ContextTimeout(5 * time.Second)) // only for http, not for websockets,etc
+	e.Use(echoMiddleware.ContextTimeout(10 * time.Second)) // only for http, not for websockets,etc
 	// Set server timeouts
 	e.Server.ReadTimeout = 5 * time.Second   //Max time to read the entire incoming request (headers + body)
 	e.Server.WriteTimeout = 10 * time.Second //Max time to write the response back to client which includes handler execution + response write
@@ -84,12 +85,13 @@ func main() {
 	nowpaymentsAPIKey := config.MustGetEnv("NOWPAYMENTS_API_KEY")
 	npClient := nowpayments.NewClient(nowpaymentsAPIKey)
 	ipnSecret := config.MustGetEnv("NOWPAYMENTS_IPN_SECRET")
+	keepaliveToken := config.MustGetEnv("KEEPALIVE_TOKEN")
 
-	routes.SetupRoutes(e, pool, authClient, valkeyClient, npClient, ipnSecret)
+	routes.SetupRoutes(e, pool, authClient, valkeyClient, npClient, ipnSecret, keepaliveToken)
 	port := config.MustGetEnv("PORT")
 	serverErr := make(chan error, 1)
 	go func() {
-		if err := e.Start(":" + port); err != nil && err != http.ErrServerClosed {
+		if err := e.Start(":" + port); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Println("server error:", err)
 			serverErr <- err
 		}

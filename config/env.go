@@ -67,6 +67,11 @@ func InitEnv() error {
 			return
 		}
 
+		if err := load("KEEPALIVE_TOKEN"); err != nil {
+			initErr = err
+			return
+		}
+
 	})
 	return initErr
 }

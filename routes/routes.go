@@ -11,17 +11,18 @@ import (
 	"github.com/rakshitg600/notakto-solo/nowpayments"
 )
 
-func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valkeyClient *redis.Client, npClient *nowpayments.Client, ipnSecret string) {
+func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valkeyClient *redis.Client, npClient *nowpayments.Client, ipnSecret string, keepaliveToken string) {
 
 	ipRateLimit := middleware.IPRateLimitMiddleware(valkeyClient, 120)
 	firebaseAuth := middleware.FirebaseAuthMiddleware(authClient)
 	uidRateLimit := middleware.UIDRateLimitMiddleware(valkeyClient, 60)
 	uidLock := middleware.UIDLockMiddleware(valkeyClient)
 
-	handler := handlers.NewHandler(pool, authClient, npClient, ipnSecret)
+	handler := handlers.NewHandler(pool, authClient, valkeyClient, npClient, ipnSecret)
 
 	e.HEAD("/v1/health-head", handler.HealthHeadHandler)
 	e.GET("/v1/health-get", handler.HealthGetHandler)
+	e.POST("/v1/keepalive", handler.KeepaliveHandler, middleware.KeepaliveAuthMiddleware(keepaliveToken))
 
 	// ── Authenticated routes ──
 	e.POST("/v1/sign-in", handler.SignInHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
