@@ -56,13 +56,6 @@ jobs:
         echo "$HOME/go/bin" >> $GITHUB_PATH
         goose --version
 
-
-    # - name: Run Goose Migrations on Staging (Test First)
-    #   env:
-    #     STAGING_DB: ${{ secrets.STAGING_DB_URL }}
-    #   run: |
-    #     goose -dir migrations up
-
     - name: Generate SQLC Code
       run: |
         go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
@@ -75,10 +68,3 @@ jobs:
       run: |
         goose -dir db/migrations postgres "$DATABASE_URL" up
         echo "✅ PROD DB UPDATED!"
-
-    - name: Run Goose Migrations on DEV
-      env:
-        DATABASE_DEV_URL: ${{ secrets.DATABASE_DEV_URL }}
-      run: |
-        goose -dir db/migrations postgres "$DATABASE_DEV_URL" up
-        echo "✅ DEV DB UPDATED!"

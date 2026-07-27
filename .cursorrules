@@ -30,7 +30,7 @@ architecture:
         - Implements graceful shutdown (SIGINT/SIGTERM).
       - **config/**
         - Centralized environment variable management via `config.InitEnv()`.
-        - Supports preview/prod env resolution (Render deployments).
+        - Loads the canonical application environment variables.
         - Access via `config.MustGetEnv()` / `config.GetEnv()`.
         - Also holds application defaults (e.g., `config.Wallet`).
       - **contextkey/**

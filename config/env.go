@@ -8,16 +8,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type EnvMode string
-
-const (
-	EnvPreview EnvMode = "preview"
-	EnvProd    EnvMode = "prod"
-)
-
 var (
 	envStore sync.Map
-	envMode  EnvMode
 	initOnce sync.Once
 	initErr  error
 )
@@ -25,16 +17,9 @@ var (
 // InitEnv loads env; call once at startup.
 func InitEnv() error {
 	initOnce.Do(func() {
-		// Load .env for local/dev and let it override stale shell exports.
-		// This keeps checked-in local config authoritative when both exist.
+		// Load .env for local use and let it override stale shell exports.
+		// This keeps local config authoritative when both exist.
 		_ = godotenv.Overload()
-
-		// Detect environment mode
-		if os.Getenv("RENDER_GIT_PULL_REQUEST") != "" {
-			envMode = EnvPreview
-		} else {
-			envMode = EnvProd
-		}
 
 		// Common variables
 		if err := load("PORT", "1323"); err != nil {
@@ -42,28 +27,27 @@ func InitEnv() error {
 			return
 		}
 
-		// Logical variables (callers never care about dev/prod)
-		if err := loadResolved("DATABASE_URL"); err != nil {
+		if err := load("DATABASE_URL"); err != nil {
 			initErr = err
 			return
 		}
 
-		if err := loadResolved("FIREBASE_CREDENTIALS_JSON"); err != nil {
+		if err := load("FIREBASE_CREDENTIALS_JSON"); err != nil {
 			initErr = err
 			return
 		}
 
-		if err := loadResolved("VALKEY_URL"); err != nil {
+		if err := load("VALKEY_URL"); err != nil {
 			initErr = err
 			return
 		}
 
-		if err := loadResolved("NOWPAYMENTS_API_KEY"); err != nil {
+		if err := load("NOWPAYMENTS_API_KEY"); err != nil {
 			initErr = err
 			return
 		}
 
-		if err := loadResolved("NOWPAYMENTS_IPN_SECRET"); err != nil {
+		if err := load("NOWPAYMENTS_IPN_SECRET"); err != nil {
 			initErr = err
 			return
 		}
@@ -75,28 +59,6 @@ func InitEnv() error {
 
 	})
 	return initErr
-}
-
-func resolveKey(key string) string {
-	if envMode == EnvPreview {
-		switch key {
-		case "DATABASE_URL":
-			return "DATABASE_DEV_URL"
-		case "FIREBASE_CREDENTIALS_JSON":
-			return "FIREBASE_DEV_CREDENTIALS_JSON"
-		case "VALKEY_URL":
-			return "VALKEY_DEV_URL"
-		case "NOWPAYMENTS_API_KEY":
-			return "NOWPAYMENTS_DEV_API_KEY"
-		case "NOWPAYMENTS_IPN_SECRET":
-			return "NOWPAYMENTS_DEV_IPN_SECRET"
-		}
-	}
-	return key
-}
-
-func loadResolved(key string) error {
-	return load(resolveKey(key))
 }
 
 func load(key string, defaults ...string) error {
@@ -112,10 +74,9 @@ func load(key string, defaults ...string) error {
 	return nil
 }
 
-// GetEnv returns the resolved env value.
+// GetEnv returns the loaded env value.
 func GetEnv(key string) (string, bool) {
-	actualKey := resolveKey(key)
-	val, ok := envStore.Load(actualKey)
+	val, ok := envStore.Load(key)
 	if !ok {
 		return "", false
 	}
