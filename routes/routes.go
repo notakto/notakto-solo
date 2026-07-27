@@ -22,7 +22,7 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 
 	e.HEAD("/v1/health-head", handler.HealthHeadHandler)
 	e.GET("/v1/health-get", handler.HealthGetHandler)
-	e.POST("/v1/keepalive", handler.KeepaliveHandler, middleware.KeepaliveAuthMiddleware(keepaliveToken))
+	e.POST("/v1/keepalive", handler.KeepaliveHandler, ipRateLimit, middleware.KeepaliveAuthMiddleware(keepaliveToken))
 
 	// ── Authenticated routes ──
 	e.POST("/v1/sign-in", handler.SignInHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
