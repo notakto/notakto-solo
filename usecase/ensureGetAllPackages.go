@@ -2,6 +2,12 @@ package usecase
 
 import "github.com/rakshitg600/notakto-solo/config"
 
-func EnsureGetAllPackages() []config.CoinPackage {
+import (
+	"context"
+
+	"github.com/rakshitg600/notakto-solo/config"
+)
+
+func EnsureGetAllPackages(ctx context.Context) []config.CoinPackage {
 	return config.ListCoinPackages()
 }
