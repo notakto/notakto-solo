@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,7 +25,7 @@ func EnsureCreateCharge(ctx context.Context, pool *pgxpool.Pool, npClient *nowpa
 		return "", "", errors.New("missing or invalid uid in context")
 	}
 
-	pkg, ok := config.CoinPackages[packageID]
+	pkg, ok := config.CoinPackageByID(packageID)
 	if !ok {
 		return "", "", fmt.Errorf("invalid package ID: %s", packageID)
 	}
@@ -36,7 +37,7 @@ func EnsureCreateCharge(ctx context.Context, pool *pgxpool.Pool, npClient *nowpa
 
 	invoice, err := npClient.CreateInvoice(ctx, nowpayments.InvoiceRequest{
 		PriceAmount:      float64(pkg.AmountCents) / 100.0,
-		PriceCurrency:    "usd",
+		PriceCurrency:    strings.ToLower(pkg.Currency),
 		OrderID:          orderID,
 		OrderDescription: fmt.Sprintf("Notakto %d coins (%s)", pkg.Coins, pkg.ID),
 	})
