@@ -46,21 +46,22 @@ Backend server for **Notakto** — a misere tic-tac-toe game where a player comp
 
 All game and payment endpoints require a Firebase `Authorization: Bearer <token>` header. Health checks and the payment-provider webhook do not.
 
-| Method | Endpoint             | Auth | Description                         |
-|--------|----------------------|------|-------------------------------------|
-| POST   | `/v1/sign-in`        | Yes  | Sign in or create a new account     |
-| POST   | `/v1/create-game`    | Yes  | Start a new game or resume existing |
-| POST   | `/v1/make-move`      | Yes  | Place a mark on a board cell        |
-| POST   | `/v1/skip-move`      | Yes  | Pay 200 coins to skip your turn     |
-| POST   | `/v1/undo-move`      | Yes  | Pay 100 coins to undo the last move |
-| POST   | `/v1/quit-game`      | Yes  | Forfeit the current game            |
-| GET    | `/v1/get-wallet`     | Yes  | Get current coins and XP balance    |
-| POST   | `/v1/update-name`    | Yes  | Update display name                 |
-| GET    | `/v1/all-packages`   | Yes | List purchasable packages       |
-| POST   | `/v1/create-charge`  | Yes | Create a hosted payment charge      |
-| GET    | `/v1/payment-status` | Yes | Get the status of a payment charge |
-| HEAD   | `/v1/health-head`    | No   | Health check (no body)              |
-| GET    | `/v1/health-get`     | No   | Health check (JSON response)        |
+| Method | Endpoint                     | Auth | Description                         |
+|--------|------------------------------|------|-------------------------------------|
+| POST   | `/v1/sign-in`                | Yes  | Sign in or create a new account     |
+| POST   | `/v1/create-game`            | Yes  | Start a new game or resume existing |
+| POST   | `/v1/make-move`              | Yes  | Place a mark on a board cell        |
+| POST   | `/v1/skip-move`              | Yes  | Pay 200 coins to skip your turn     |
+| POST   | `/v1/undo-move`              | Yes  | Pay 100 coins to undo the last move |
+| POST   | `/v1/quit-game`              | Yes  | Forfeit the current game            |
+| GET    | `/v1/get-wallet`             | Yes  | Get current coins and XP balance    |
+| POST   | `/v1/update-name`            | Yes  | Update display name                 |
+| GET    | `/v1/all-packages`           | Yes  | List purchasable packages           |
+| POST   | `/v1/create-charge`          | Yes  | Create a hosted payment charge      |
+| GET    | `/v1/payment-status`         | Yes  | Get the status of a payment charge  |
+| POST   | `/v1/nowpayments-webhook`    | No   | Payment-provider webhook            |
+| HEAD   | `/v1/health-head`            | No   | Health check (no body)              |
+| GET    | `/v1/health-get`             | No   | Health check (JSON response)        |
 
 ## Getting Started
 

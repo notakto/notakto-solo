@@ -16,7 +16,7 @@ type CoinPackageResponse struct {
 	Currency    string `json:"currency"`
 }
 
-type GetCoinPackagesResponse struct {
+type GetAllPackagesResponse struct {
 	CoinPackages []CoinPackageResponse `json:"coinPackages"`
 }
 
@@ -26,7 +26,7 @@ func (h *Handler) GetAllPackagesHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 
-	packages := usecase.EnsureGetAllPackages()
+	packages := usecase.EnsureGetAllPackages(c.Request().Context())
 	responsePackages := make([]CoinPackageResponse, len(packages))
 	for i, pkg := range packages {
 		responsePackages[i] = CoinPackageResponse{
@@ -37,7 +37,7 @@ func (h *Handler) GetAllPackagesHandler(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, GetCoinPackagesResponse{
+	return c.JSON(http.StatusOK, GetAllPackagesResponse{
 		CoinPackages: responsePackages,
 	})
 }
