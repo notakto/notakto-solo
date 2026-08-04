@@ -4,18 +4,19 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-
 	"github.com/rakshitg600/notakto-solo/contextkey"
+
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
 type CoinPackageResponse struct {
-	PackageID   string `json:"packageId"`
-	PackageName string `json:"packageName"`
-	Coins       int32  `json:"coins"`
-	VisualCoins int32  `json:"visualCoins"`
-	AmountCents int32  `json:"amountCents"`
-	Currency    string `json:"currency"`
+	PackageID      string `json:"packageId"`
+	PackageName    string `json:"packageName"`
+	Coins          int32  `json:"coins"`
+	VisualCoins    int32  `json:"visualCoins"`
+	AmountCents    int32  `json:"amountCents"`
+	Currency       string `json:"currency"`
+	DefaultPackage bool   `json:"defaultPackage"`
 }
 
 type GetAllPackagesResponse struct {
@@ -32,12 +33,13 @@ func (h *Handler) GetAllPackagesHandler(c echo.Context) error {
 	responsePackages := make([]CoinPackageResponse, len(packages))
 	for i, pkg := range packages {
 		responsePackages[i] = CoinPackageResponse{
-			PackageID:   pkg.ID,
-			PackageName: pkg.PackageName,
-			Coins:       pkg.Coins,
-			VisualCoins: pkg.VisualCoins,
-			AmountCents: pkg.AmountCents,
-			Currency:    pkg.Currency,
+			PackageID:      pkg.ID,
+			PackageName:    pkg.PackageName,
+			Coins:          pkg.Coins,
+			VisualCoins:    pkg.VisualCoins,
+			AmountCents:    pkg.AmountCents,
+			Currency:       pkg.Currency,
+			DefaultPackage: pkg.DefaultPackage,
 		}
 	}
 
