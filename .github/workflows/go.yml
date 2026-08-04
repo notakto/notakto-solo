@@ -42,6 +42,13 @@ jobs:
     needs: build                    # Run only if build pass
     if: github.ref == 'refs/heads/main'  # Only on main push
     runs-on: ubuntu-latest
+    env:
+      MIGRATIONS_CHANGED: >-
+        ${{
+          contains(toJSON(github.event.commits.*.added), 'db/migrations/')
+          || contains(toJSON(github.event.commits.*.modified), 'db/migrations/')
+          || contains(toJSON(github.event.commits.*.removed), 'db/migrations/')
+        }}
     steps:
     - uses: actions/checkout@v4
 
@@ -51,6 +58,7 @@ jobs:
         go-version: '1.24'
 
     - name: Install Goose
+      if: env.MIGRATIONS_CHANGED == 'true'
       run: |
         go install github.com/pressly/goose/v3/cmd/goose@latest
         echo "$HOME/go/bin" >> $GITHUB_PATH
@@ -62,7 +70,8 @@ jobs:
         echo "$HOME/go/bin" >> $GITHUB_PATH
         sqlc generate
 
-    - name: Run Goose Migrations on PROD 
+    - name: Run Goose Migrations on PROD
+      if: env.MIGRATIONS_CHANGED == 'true'
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: |

@@ -7,8 +7,8 @@ import (
 	"firebase.google.com/go/v4/auth"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/contextkey"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
@@ -33,11 +33,15 @@ func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Clien
 	if err == nil && existing.Uid == "" {
 		return "", "", "", false, errors.New("empty player returned from db")
 	}
-	if err != nil && err != pgx.ErrNoRows {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return "", "", "", false, err
 	}
 	// STEP 2: Fetch profile from Firebase
 	name, email, profilePic, err = GetFirebaseUserProfile(ctx, authClient)
+	if err != nil {
+		return "", "", "", true, err
+	}
+	signUp, err := loadSignUpConfig(ctx, queries)
 	if err != nil {
 		return "", "", "", true, err
 	}
@@ -57,7 +61,7 @@ func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Clien
 		return "", "", "", true, err
 	}
 	// STEP 4: Create Wallet for player
-	err = store.CreateWallet(ctx, qtx)
+	err = store.CreateWallet(ctx, qtx, signUp)
 	if err != nil {
 		return "", "", "", true, err
 	}

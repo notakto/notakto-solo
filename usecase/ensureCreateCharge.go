@@ -25,7 +25,12 @@ func EnsureCreateCharge(ctx context.Context, pool *pgxpool.Pool, npClient *nowpa
 		return "", "", errors.New("missing or invalid uid in context")
 	}
 
-	pkg, ok := config.CoinPackageByID(packageID)
+	queries := db.New(pool)
+	packages, err := loadCoinPackages(ctx, queries)
+	if err != nil {
+		return "", "", err
+	}
+	pkg, ok := config.CoinPackageByID(packages, packageID)
 	if !ok {
 		return "", "", fmt.Errorf("invalid package ID: %s", packageID)
 	}
@@ -45,7 +50,6 @@ func EnsureCreateCharge(ctx context.Context, pool *pgxpool.Pool, npClient *nowpa
 		return "", "", fmt.Errorf("nowpayments create invoice failed: %w", err)
 	}
 
-	queries := db.New(pool)
 	err = store.CreatePayment(ctx, queries,
 		orderID,
 		uid,

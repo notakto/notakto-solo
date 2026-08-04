@@ -8,11 +8,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rakshitg600/notakto-solo/config"
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/contextkey"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
-func CreateWallet(ctx context.Context, q *db.Queries) (err error) {
+func CreateWallet(ctx context.Context, q *db.Queries, signUp config.SignUpConfig) (err error) {
 	uid, ok := contextkey.UIDFromContext(ctx)
 	if !ok || uid == "" {
 		return errors.New("missing or invalid uid in context")
@@ -21,11 +21,11 @@ func CreateWallet(ctx context.Context, q *db.Queries) (err error) {
 	err = q.CreateWallet(ctx, db.CreateWalletParams{
 		Uid: uid,
 		Coins: pgtype.Int4{
-			Int32: config.Wallet.InitialCoins,
+			Int32: signUp.InitialCoins,
 			Valid: true,
 		},
 		Xp: pgtype.Int4{
-			Int32: config.Wallet.InitialXP,
+			Int32: signUp.InitialXP,
 			Valid: true,
 		},
 	})

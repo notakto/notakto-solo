@@ -10,6 +10,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Config struct {
+	Key       string    `json:"key"`
+	Value     []byte    `json:"value"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type Payment struct {
 	ID          string    `json:"id"`
 	Uid         string    `json:"uid"`

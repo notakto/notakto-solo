@@ -28,7 +28,11 @@ func (h *Handler) GetAllPackagesHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 
-	packages := usecase.EnsureGetAllPackages(c.Request().Context())
+	packages, err := usecase.EnsureGetAllPackages(c.Request().Context(), h.Pool)
+	if err != nil {
+		c.Logger().Errorf("EnsureGetAllPackages failed: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get all packages")
+	}
 	responsePackages := make([]CoinPackageResponse, len(packages))
 	for i, pkg := range packages {
 		responsePackages[i] = CoinPackageResponse{

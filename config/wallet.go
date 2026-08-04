@@ -1,11 +1,17 @@
 package config
 
-type WalletDefaults struct {
-	InitialCoins int32
-	InitialXP    int32
+const SignUpKey = "sign_up"
+
+type SignUpConfig struct {
+	InitialCoins int32 `json:"initial_coins"`
+	InitialXP    int32 `json:"initial_xp"`
 }
 
-var Wallet = WalletDefaults{
+var defaultSignUpConfig = SignUpConfig{
 	InitialCoins: 1000,
 	InitialXP:    0,
+}
+
+func DefaultSignUpConfig() SignUpConfig {
+	return defaultSignUpConfig
 }

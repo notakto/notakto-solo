@@ -1,17 +1,17 @@
 package config
 
-import "slices"
+const CoinPackagesKey = "coin_packages"
 
 type CoinPackage struct {
-	ID          string
-	PackageName string
-	Coins       int32
-	VisualCoins int32
-	AmountCents int32
-	Currency    string
+	ID          string `json:"id"`
+	PackageName string `json:"package_name"`
+	Coins       int32  `json:"coins"`
+	VisualCoins int32  `json:"visual_coins"`
+	AmountCents int32  `json:"amount_cents"`
+	Currency    string `json:"currency"`
 }
 
-var coinPackages = []CoinPackage{
+var defaultCoinPackages = []CoinPackage{
 	{
 		ID:          "pkg_500",
 		PackageName: "Starter Pack",
@@ -38,19 +38,15 @@ var coinPackages = []CoinPackage{
 	},
 }
 
-var coinPackagesByID = func() map[string]CoinPackage {
-	packages := make(map[string]CoinPackage, len(coinPackages))
-	for _, pkg := range coinPackages {
-		packages[pkg.ID] = pkg
-	}
-	return packages
-}()
-
-func ListCoinPackages() []CoinPackage {
-	return slices.Clone(coinPackages)
+func DefaultCoinPackages() []CoinPackage {
+	return defaultCoinPackages
 }
 
-func CoinPackageByID(packageID string) (CoinPackage, bool) {
-	pkg, ok := coinPackagesByID[packageID]
-	return pkg, ok
+func CoinPackageByID(packages []CoinPackage, packageID string) (CoinPackage, bool) {
+	for _, pkg := range packages {
+		if pkg.ID == packageID {
+			return pkg, true
+		}
+	}
+	return CoinPackage{}, false
 }
