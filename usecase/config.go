@@ -16,7 +16,7 @@ func loadCoinPackages(ctx context.Context, q *db.Queries) ([]config.CoinPackage,
 	value, err := store.GetConfigValueByKey(ctx, q, config.CoinPackagesKey)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return config.DefaultCoinPackages(), fmt.Errorf("no rows found for %q with error: %w", config.CoinPackagesKey, err)
+			return config.DefaultCoinPackages(), nil
 		}
 		return nil, fmt.Errorf("get %q config: %w", config.CoinPackagesKey, err)
 	}
@@ -31,7 +31,7 @@ func loadSignUpConfig(ctx context.Context, q *db.Queries) (config.SignUpConfig, 
 	value, err := store.GetConfigValueByKey(ctx, q, config.SignUpKey)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return config.DefaultSignUpConfig(), fmt.Errorf("no rows found for %q with error: %w", config.SignUpKey, err)
+			return config.DefaultSignUpConfig(), nil
 		}
 		return config.SignUpConfig{}, fmt.Errorf("get %q config: %w", config.SignUpKey, err)
 	}

@@ -42,15 +42,21 @@ jobs:
     needs: build                    # Run only if build pass
     if: github.ref == 'refs/heads/main'  # Only on main push
     runs-on: ubuntu-latest
-    env:
-      MIGRATIONS_CHANGED: >-
-        ${{
-          contains(toJSON(github.event.commits.*.added), 'db/migrations/')
-          || contains(toJSON(github.event.commits.*.modified), 'db/migrations/')
-          || contains(toJSON(github.event.commits.*.removed), 'db/migrations/')
-        }}
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Detect migration changes
+      run: |
+        before="${{ github.event.before }}"
+        after="${{ github.event.after }}"
+
+        if git diff --name-only "$before" "$after" -- db/migrations/ | grep -q .; then
+          echo "MIGRATIONS_CHANGED=true" >> "$GITHUB_ENV"
+        else
+          echo "MIGRATIONS_CHANGED=false" >> "$GITHUB_ENV"
+        fi
 
     - name: Set up Go
       uses: actions/setup-go@v4
