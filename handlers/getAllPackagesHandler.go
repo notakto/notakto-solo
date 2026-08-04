@@ -4,22 +4,14 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-
+	"github.com/rakshitg600/notakto-solo/config"
 	"github.com/rakshitg600/notakto-solo/contextkey"
+
 	"github.com/rakshitg600/notakto-solo/usecase"
 )
 
-type CoinPackageResponse struct {
-	PackageID   string `json:"packageId"`
-	PackageName string `json:"packageName"`
-	Coins       int32  `json:"coins"`
-	VisualCoins int32  `json:"visualCoins"`
-	AmountCents int32  `json:"amountCents"`
-	Currency    string `json:"currency"`
-}
-
 type GetAllPackagesResponse struct {
-	CoinPackages []CoinPackageResponse `json:"coinPackages"`
+	CoinPackages []config.CoinPackage `json:"coinPackages"`
 }
 
 func (h *Handler) GetAllPackagesHandler(c echo.Context) error {
@@ -33,15 +25,16 @@ func (h *Handler) GetAllPackagesHandler(c echo.Context) error {
 		c.Logger().Errorf("EnsureGetAllPackages failed: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get all packages")
 	}
-	responsePackages := make([]CoinPackageResponse, len(packages))
+	responsePackages := make([]config.CoinPackage, len(packages))
 	for i, pkg := range packages {
-		responsePackages[i] = CoinPackageResponse{
-			PackageID:   pkg.ID,
-			PackageName: pkg.PackageName,
-			Coins:       pkg.Coins,
-			VisualCoins: pkg.VisualCoins,
-			AmountCents: pkg.AmountCents,
-			Currency:    pkg.Currency,
+		responsePackages[i] = config.CoinPackage{
+			PackageID:      pkg.PackageID,
+			PackageName:    pkg.PackageName,
+			Coins:          pkg.Coins,
+			VisualCoins:    pkg.VisualCoins,
+			AmountCents:    pkg.AmountCents,
+			Currency:       pkg.Currency,
+			DefaultPackage: pkg.DefaultPackage,
 		}
 	}
 
