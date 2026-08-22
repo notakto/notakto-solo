@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"firebase.google.com/go/v4/auth"
 	"github.com/jackc/pgx/v5"
@@ -56,7 +57,8 @@ func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Clien
 
 	qtx := queries.WithTx(tx)
 	// STEP 3: Create new player
-	err = store.CreatePlayer(ctx, qtx, name, email, profilePic)
+	username, _, _ := strings.Cut(email, "@")
+	err = store.CreatePlayer(ctx, qtx, name, email, profilePic, username)
 	if err != nil {
 		return "", "", "", true, err
 	}
