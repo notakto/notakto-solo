@@ -34,7 +34,7 @@ type Player struct {
 	Name       string      `json:"name"`
 	Email      string      `json:"email"`
 	ProfilePic pgtype.Text `json:"profile_pic"`
-	Username   pgtype.Text `json:"username"`
+	Username   string      `json:"username"`
 }
 
 type Session struct {

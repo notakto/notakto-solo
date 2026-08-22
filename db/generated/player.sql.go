@@ -21,7 +21,7 @@ type CreatePlayerParams struct {
 	Email      string      `json:"email"`
 	Name       string      `json:"name"`
 	ProfilePic pgtype.Text `json:"profile_pic"`
-	Username   pgtype.Text `json:"username"`
+	Username   string      `json:"username"`
 }
 
 func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) error {

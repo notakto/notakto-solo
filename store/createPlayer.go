@@ -25,10 +25,7 @@ func CreatePlayer(ctx context.Context, q *db.Queries, name string, email string,
 			String: profilePic,
 			Valid:  profilePic != "",
 		},
-		Username: pgtype.Text{
-			String: username,
-			Valid:  username != "",
-		},
+		Username: username,
 	})
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls
