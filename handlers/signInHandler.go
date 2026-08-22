@@ -12,6 +12,7 @@ import (
 
 type SignInResponse struct {
 	Uid        string `json:"uid"`
+	Username   string `json:"username"`
 	Name       string `json:"name"`
 	Email      string `json:"email"`
 	ProfilePic string `json:"profile_pic"`
@@ -24,7 +25,7 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 	log.Printf("SignInHandler called for uid: %s", uid)
-	profilePic, name, email, isNew, err := usecase.EnsureLogin(
+	profilePic, name, email, username, isNew, err := usecase.EnsureLogin(
 		c.Request().Context(),
 		h.Pool,
 		h.AuthClient,
@@ -37,11 +38,12 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 
 	resp := SignInResponse{
 		Uid:        uid,
+		Username:   username,
 		Name:       name,
 		Email:      email,
 		ProfilePic: profilePic,
 		NewAccount: isNew,
 	}
-	log.Printf("User signed in: %s (new account: %v), name: %s, email %s, profilePic: %s", uid, isNew, name, email, profilePic)
+	log.Printf("User signed in: %s (new account: %v), username: %s, name: %s, email %s, profilePic: %s", uid, isNew, username, name, email, profilePic)
 	return c.JSON(http.StatusOK, resp)
 }
