@@ -59,7 +59,12 @@ func processPaymentFinished(ctx context.Context, pool *pgxpool.Pool, orderID str
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			log.Printf("processPaymentFinished: failed to rollback transaction: %v", err)
+		}
+	}(tx, ctx)
 
 	qtx := queries.WithTx(tx)
 

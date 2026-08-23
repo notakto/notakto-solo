@@ -3,12 +3,13 @@ package usecase
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/contextkey"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/logic"
 	"github.com/rakshitg600/notakto-solo/store"
 )
@@ -26,6 +27,7 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	if !ok || uid == "" {
 		return nil, nil, false, false, 0, 0, errors.New("missing or invalid uid in context")
 	}
+
 	queries := db.New(pool)
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.Serializable,
@@ -34,7 +36,12 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	if err != nil {
 		return nil, nil, false, false, 0, 0, err
 	}
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			log.Printf("EnsureSkipMove: failed to rollback transaction: %v", err)
+		}
+	}(tx, ctx)
 
 	qtx := queries.WithTx(tx)
 	// STEP 1: Validate sessionId

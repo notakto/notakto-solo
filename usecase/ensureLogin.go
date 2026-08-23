@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 
 	"firebase.google.com/go/v4/auth"
@@ -54,7 +55,12 @@ func EnsureLogin(ctx context.Context, pool *pgxpool.Pool, authClient *auth.Clien
 	if err != nil {
 		return "", "", "", "", true, err
 	}
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			log.Printf("EnsureLogin: Failed to rollback transaction: %v", err)
+		}
+	}(tx, ctx)
 
 	qtx := queries.WithTx(tx)
 	// STEP 3: Create new player

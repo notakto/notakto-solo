@@ -3,11 +3,12 @@ package usecase
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/contextkey"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
@@ -27,7 +28,12 @@ func EnsureQuitGame(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	if err != nil {
 		return false, err
 	}
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			log.Printf("EnsureQuitGame: failed to rollback transaction: %v", err)
+		}
+	}(tx, ctx)
 
 	qtx := queries.WithTx(tx)
 	// STEP 1: Validate sessionId

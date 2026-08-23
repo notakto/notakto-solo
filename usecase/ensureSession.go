@@ -3,13 +3,14 @@ package usecase
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/contextkey"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
@@ -38,7 +39,12 @@ func EnsureSession(ctx context.Context, pool *pgxpool.Pool, numberOfBoards int32
 	if err != nil {
 		return "", "", nil, nil, false, 0, 0, 0, false, time.Time{}, err
 	}
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			log.Printf("EnsureSession: failed to rollback transaction: %v", err)
+		}
+	}(tx, ctx)
 
 	qtx := queries.WithTx(tx)
 	// STEP 1: Try existing session
