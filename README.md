@@ -56,6 +56,7 @@ All game and payment endpoints require a Firebase `Authorization: Bearer <token>
 | POST   | `/v1/quit-game`              | Yes  | Forfeit the current game            |
 | GET    | `/v1/get-wallet`             | Yes  | Get current coins and XP balance    |
 | POST   | `/v1/update-name`            | Yes  | Update display name                 |
+| POST   | `/v1/update-username`        | Yes  | Update username                     |
 | GET    | `/v1/all-packages`           | Yes  | List purchasable packages           |
 | POST   | `/v1/create-charge`          | Yes  | Create a hosted payment charge      |
 | GET    | `/v1/payment-status`         | Yes  | Get the status of a payment charge  |

@@ -33,6 +33,7 @@ func SetupRoutes(e *echo.Echo, pool *pgxpool.Pool, authClient *auth.Client, valk
 	e.POST("/v1/quit-game", handler.QuitGameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 	e.GET("/v1/get-wallet", handler.GetWalletHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 	e.POST("/v1/update-name", handler.UpdateNameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
+	e.POST("/v1/update-username", handler.UpdateUsernameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 
 	// ── Payment routes ──
 	e.GET("/v1/all-packages", handler.GetAllPackagesHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)

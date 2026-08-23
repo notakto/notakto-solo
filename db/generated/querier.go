@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CheckUsernameExists(ctx context.Context, username string) (bool, error)
 	CreateInitialSessionState(ctx context.Context, arg CreateInitialSessionStateParams) error
 	CreatePayment(ctx context.Context, arg CreatePaymentParams) error
 	CreatePlayer(ctx context.Context, arg CreatePlayerParams) error
@@ -26,6 +27,7 @@ type Querier interface {
 	QuitGameSession(ctx context.Context, sessionID string) error
 	UpdatePaymentStatusIfNotConfirmed(ctx context.Context, arg UpdatePaymentStatusIfNotConfirmedParams) (int64, error)
 	UpdatePlayerName(ctx context.Context, arg UpdatePlayerNameParams) (Player, error)
+	UpdatePlayerUsername(ctx context.Context, arg UpdatePlayerUsernameParams) (Player, error)
 	UpdateSessionAfterGameover(ctx context.Context, arg UpdateSessionAfterGameoverParams) error
 	UpdateSessionAfterQuitGame(ctx context.Context, sessionID string) error
 	UpdateSessionState(ctx context.Context, arg UpdateSessionStateParams) error
