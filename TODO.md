@@ -38,3 +38,5 @@
 38. refactor store package with create, read, update and delete - [ ]
 39. uid mismatch bug and read uid from context always and never as prop - [x]
 40. replace -1 as placeholder for skip move with something good - [x]
+41. censor and bloom filter for default and update username - []
+42. http status code from ensure layer to handler layer - []

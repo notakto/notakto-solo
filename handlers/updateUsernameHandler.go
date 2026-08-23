@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"log"
 	"net/http"
 
@@ -30,13 +29,12 @@ func (h *Handler) UpdateUsernameHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "username is required")
 	}
 
-	updatedUsername, err := usecase.EnsureUpdateUsername(c.Request().Context(), h.Pool, req.Username)
+	updatedUsername, statusCode, err := usecase.EnsureUpdateUsername(c.Request().Context(), h.Pool, req.Username)
 	if err != nil {
-		if errors.Is(err, usecase.ErrUsernameExists) {
-			return echo.NewHTTPError(http.StatusConflict, "username already exists")
+		if statusCode >= 500 {
+			log.Printf("UpdateUsernameHandler error for uid %s: %v", uid, err)
 		}
-		log.Printf("UpdateUsernameHandler error for uid %s: %v", uid, err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+		return echo.NewHTTPError(statusCode, err.Error())
 	}
 
 	log.Printf("Updated username for uid %s to %s", uid, updatedUsername)
