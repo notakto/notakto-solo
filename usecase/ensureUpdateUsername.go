@@ -40,8 +40,8 @@ func EnsureUpdateUsername(ctx context.Context, pool *pgxpool.Pool, username stri
 	}
 	defer func(tx pgx.Tx, ctx context.Context) {
 		err := tx.Rollback(ctx)
-		if err != nil {
-			log.Printf("EnsureUpdateUsername: Failed to rollback transaction")
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			log.Printf("EnsureUpdateUsername: Failed to rollback transaction: %v", err)
 		}
 	}(tx, ctx)
 
