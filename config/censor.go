@@ -41,5 +41,5 @@ var defaultCensorWords = []string{
 }
 
 func DefaultCensorWords() []string {
-	return defaultCensorWords
+	return append([]string(nil), defaultCensorWords...)
 }
