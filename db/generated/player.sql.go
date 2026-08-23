@@ -12,11 +12,16 @@ import (
 )
 
 const checkUsernameExists = `-- name: CheckUsernameExists :one
-SELECT EXISTS(SELECT 1 FROM Player WHERE username = $1) AS exists
+SELECT EXISTS(SELECT 1 FROM Player WHERE username = $1 AND uid != $2) AS exists
 `
 
-func (q *Queries) CheckUsernameExists(ctx context.Context, username string) (bool, error) {
-	row := q.db.QueryRow(ctx, checkUsernameExists, username)
+type CheckUsernameExistsParams struct {
+	Username string `json:"username"`
+	Uid      string `json:"uid"`
+}
+
+func (q *Queries) CheckUsernameExists(ctx context.Context, arg CheckUsernameExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, checkUsernameExists, arg.Username, arg.Uid)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

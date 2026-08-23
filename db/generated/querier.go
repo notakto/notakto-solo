@@ -9,7 +9,7 @@ import (
 )
 
 type Querier interface {
-	CheckUsernameExists(ctx context.Context, username string) (bool, error)
+	CheckUsernameExists(ctx context.Context, arg CheckUsernameExistsParams) (bool, error)
 	CreateInitialSessionState(ctx context.Context, arg CreateInitialSessionStateParams) error
 	CreatePayment(ctx context.Context, arg CreatePaymentParams) error
 	CreatePlayer(ctx context.Context, arg CreatePlayerParams) error

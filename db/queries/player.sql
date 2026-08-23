@@ -9,7 +9,7 @@ VALUES ($1, $2, $3, $4, $5);
 UPDATE Player SET name = $2 WHERE uid = $1 RETURNING *;
 
 -- name: CheckUsernameExists :one
-SELECT EXISTS(SELECT 1 FROM Player WHERE username = $1) AS exists;
+SELECT EXISTS(SELECT 1 FROM Player WHERE username = $1 AND uid != $2) AS exists;
 
 -- name: UpdatePlayerUsername :one
 UPDATE Player SET username = $2 WHERE uid = $1 RETURNING *;

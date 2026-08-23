@@ -14,6 +14,10 @@ type UpdateUsernameRequest struct {
 	Username string `json:"username"`
 }
 
+type UpdateUsernameResponse struct {
+	Username string `json:"username"`
+}
+
 func (h *Handler) UpdateUsernameHandler(c echo.Context) error {
 	uid, ok := contextkey.UIDFromContext(c.Request().Context())
 	if !ok || uid == "" {
@@ -38,5 +42,5 @@ func (h *Handler) UpdateUsernameHandler(c echo.Context) error {
 	}
 
 	log.Printf("Updated username for uid %s to %s", uid, updatedUsername)
-	return c.JSON(http.StatusOK, map[string]string{"username": updatedUsername})
+	return c.JSON(http.StatusOK, UpdateUsernameResponse{Username: updatedUsername})
 }
