@@ -27,6 +27,50 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) erro
 	return err
 }
 
+const getLeaderboard = `-- name: GetLeaderboard :many
+SELECT
+    ranked.rank::integer AS rank,
+    ranked.username,
+    ranked.xp::integer AS xp
+FROM (
+    SELECT
+        RANK() OVER (ORDER BY w.xp DESC) AS rank,
+        p.username,
+        w.xp
+    FROM wallet w
+    JOIN player p ON p.uid = w.uid
+    WHERE w.xp IS NOT NULL
+) ranked
+ORDER BY ranked.xp DESC, ranked.username ASC
+LIMIT 10
+`
+
+type GetLeaderboardRow struct {
+	Rank     int32  `json:"rank"`
+	Username string `json:"username"`
+	Xp       int32  `json:"xp"`
+}
+
+func (q *Queries) GetLeaderboard(ctx context.Context) ([]GetLeaderboardRow, error) {
+	rows, err := q.db.Query(ctx, getLeaderboard)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetLeaderboardRow{}
+	for rows.Next() {
+		var i GetLeaderboardRow
+		if err := rows.Scan(&i.Rank, &i.Username, &i.Xp); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getWalletByPlayerId = `-- name: GetWalletByPlayerId :one
 SELECT
     uid,

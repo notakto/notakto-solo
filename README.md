@@ -55,6 +55,7 @@ All game and payment endpoints require a Firebase `Authorization: Bearer <token>
 | POST   | `/v1/undo-move`              | Yes  | Pay 100 coins to undo the last move |
 | POST   | `/v1/quit-game`              | Yes  | Forfeit the current game            |
 | GET    | `/v1/get-wallet`             | Yes  | Get current coins and XP balance    |
+| GET    | `/v1/leaderboard`            | Yes  | Get top 10 players ordered by XP    |
 | POST   | `/v1/update-name`            | Yes  | Update display name                 |
 | POST   | `/v1/update-username`        | Yes  | Update username                     |
 | GET    | `/v1/all-packages`           | Yes  | List purchasable packages           |
@@ -120,6 +121,18 @@ Request → CORS → IP Rate Limit → Firebase Auth → UID Rate Limit → UID 
 - **UID Lock Middleware** — acquires a per-user distributed lock via Redis/Valkey to prevent concurrent mutations.
 - **Usecase Layer** — runs business logic inside serializable Postgres transactions.
 - **Store Layer** — thin wrappers over sqlc-generated queries with slow-query logging (>2s).
+
+### Leaderboard
+
+`GET /v1/leaderboard` returns up to 10 players with non-null XP, ranked by competition ranking (`1, 1, 3`). Ties are ordered alphabetically by username and only `rank`, `username`, and `xp` are exposed.
+
+```json
+{
+  "leaderboard": [
+    {"rank": 1, "username": "player_one", "xp": 1200}
+  ]
+}
+```
 
 ## Game State Encoding
 

@@ -18,6 +18,7 @@ type Querier interface {
 	GetConfigValueByKey(ctx context.Context, key string) ([]byte, error)
 	GetLatestSessionStateByPlayerId(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdRow, error)
 	GetLatestSessionStateByPlayerIdWithLock(ctx context.Context, uid string) (GetLatestSessionStateByPlayerIdWithLockRow, error)
+	GetLeaderboard(ctx context.Context) ([]GetLeaderboardRow, error)
 	GetPaymentById(ctx context.Context, id string) (Payment, error)
 	GetPaymentByIdWithLock(ctx context.Context, id string) (Payment, error)
 	GetPaymentsByUid(ctx context.Context, uid string) ([]Payment, error)
