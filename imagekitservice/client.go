@@ -4,11 +4,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"net/url"
 	"path"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -28,7 +26,6 @@ const (
 )
 
 var (
-	ErrInvalidConfig        = errors.New("invalid ImageKit configuration")
 	ErrNotInitialized       = errors.New("ImageKit service is not initialized")
 	ErrInvalidUID           = errors.New("invalid Firebase UID")
 	ErrInvalidFilename      = errors.New("invalid image filename")
@@ -73,48 +70,45 @@ var (
 	newID       = uuid.NewString
 )
 
-// Init validates cfg and initializes the ImageKit service.
+// Init initializes the ImageKit service.
 func Init(cfg Config) error {
-	normalized, err := validateConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	imagekit := imagekitsdk.NewClient(option.WithPrivateKey(normalized.PrivateKey))
+	imagekit := imagekitsdk.NewClient(option.WithPrivateKey(cfg.PrivateKey))
 	sdk = &imagekit
-	publicKey = normalized.PublicKey
-	privateKey = normalized.PrivateKey
-	urlEndpoint = normalized.URLEndpoint
+	publicKey = cfg.PublicKey
+	privateKey = cfg.PrivateKey
+	urlEndpoint = strings.TrimRight(cfg.URLEndpoint, "/")
 	return nil
-}
-
-func ensureInitialized() error {
-	if sdk == nil {
-		return ErrNotInitialized
-	}
-	return nil
-}
-
-// ProfileImageFolder returns the only ImageKit folder authorized for uid. Raw
-// URL-safe base64 avoids collisions and prevents UID path traversal.
-func ProfileImageFolder(uid string) (string, error) {
-	if uid == "" || strings.TrimSpace(uid) == "" || !utf8.ValidString(uid) || containsControl(uid) {
-		return "", ErrInvalidUID
-	}
-	return profileImageRoot + "/" + base64.RawURLEncoding.EncodeToString([]byte(uid)), nil
 }
 
 func GenerateUploadAuth(uid, originalFilename string) (UploadAuth, error) {
-	if err := ensureInitialized(); err != nil {
-		return UploadAuth{}, err
+	if sdk == nil {
+		return UploadAuth{}, ErrNotInitialized
 	}
-	folder, err := ProfileImageFolder(uid)
-	if err != nil {
-		return UploadAuth{}, err
+	if uid == "" || strings.TrimSpace(uid) == "" || !utf8.ValidString(uid) {
+		return UploadAuth{}, ErrInvalidUID
 	}
-	extension, err := normalizeExtension(originalFilename)
-	if err != nil {
-		return UploadAuth{}, err
+	folder := profileImageRoot + "/" + base64.RawURLEncoding.EncodeToString([]byte(uid))
+	if originalFilename == "" || len(originalFilename) > maxOriginalNameBytes ||
+		strings.TrimSpace(originalFilename) != originalFilename || !utf8.ValidString(originalFilename) ||
+		strings.ContainsAny(originalFilename, `/\`) {
+		return UploadAuth{}, ErrInvalidFilename
+	}
+	extension := strings.ToLower(path.Ext(originalFilename))
+	stem := strings.TrimSuffix(originalFilename, path.Ext(originalFilename))
+	if stem == "" || stem == "." {
+		return UploadAuth{}, ErrInvalidFilename
+	}
+	switch extension {
+	case ".jpg":
+		extension = ".jpg"
+	case ".jpeg":
+		extension = ".jpg"
+	case ".png":
+		extension = ".png"
+	case ".webp":
+		extension = ".webp"
+	default:
+		return UploadAuth{}, ErrUnsupportedExtension
 	}
 
 	fileName := "avatar-" + newID() + extension
@@ -152,58 +146,4 @@ func GenerateUploadAuth(uid, originalFilename string) (UploadAuth, error) {
 			Checks:            UploadChecks,
 		},
 	}, nil
-}
-
-func validateConfig(cfg Config) (Config, error) {
-	if !validKey(cfg.PublicKey, "public_") {
-		return Config{}, fmt.Errorf("%w: public key must start with public_", ErrInvalidConfig)
-	}
-	if !validKey(cfg.PrivateKey, "private_") {
-		return Config{}, fmt.Errorf("%w: private key must start with private_", ErrInvalidConfig)
-	}
-	if cfg.URLEndpoint == "" || strings.TrimSpace(cfg.URLEndpoint) != cfg.URLEndpoint || containsControl(cfg.URLEndpoint) {
-		return Config{}, fmt.Errorf("%w: URL endpoint is required", ErrInvalidConfig)
-	}
-	parsed, err := url.Parse(cfg.URLEndpoint)
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil ||
-		parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || parsed.Opaque != "" {
-		return Config{}, fmt.Errorf("%w: URL endpoint must be an HTTPS origin or path without credentials, query, or fragment", ErrInvalidConfig)
-	}
-	parsed.Path = strings.TrimRight(parsed.Path, "/")
-	cfg.URLEndpoint = strings.TrimRight(parsed.String(), "/")
-	return cfg, nil
-}
-
-func validKey(value, prefix string) bool {
-	return strings.HasPrefix(value, prefix) && len(value) > len(prefix) &&
-		strings.TrimSpace(value) == value && !containsControl(value)
-}
-
-func normalizeExtension(originalFilename string) (string, error) {
-	if originalFilename == "" || len(originalFilename) > maxOriginalNameBytes ||
-		strings.TrimSpace(originalFilename) != originalFilename || !utf8.ValidString(originalFilename) ||
-		containsControl(originalFilename) || strings.ContainsAny(originalFilename, `/\`) {
-		return "", ErrInvalidFilename
-	}
-	extension := strings.ToLower(path.Ext(originalFilename))
-	stem := strings.TrimSuffix(originalFilename, path.Ext(originalFilename))
-	if stem == "" || stem == "." {
-		return "", ErrInvalidFilename
-	}
-	switch extension {
-	case ".jpg":
-		return ".jpg", nil
-	case ".jpeg":
-		return ".jpg", nil
-	case ".png":
-		return ".png", nil
-	case ".webp":
-		return ".webp", nil
-	default:
-		return "", ErrUnsupportedExtension
-	}
-}
-
-func containsControl(value string) bool {
-	return strings.IndexFunc(value, unicode.IsControl) >= 0
 }

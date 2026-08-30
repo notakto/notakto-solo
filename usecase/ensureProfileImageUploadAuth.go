@@ -13,6 +13,11 @@ import (
 	"github.com/rakshitg600/notakto-solo/store"
 )
 
+var (
+	ErrProfileImagePlayerNotFound = errors.New("player profile not found")
+	ErrInvalidProfileImageRequest = errors.New("invalid profile-image request")
+)
+
 func EnsureProfileImageUploadAuth(
 	ctx context.Context,
 	pool *pgxpool.Pool,
