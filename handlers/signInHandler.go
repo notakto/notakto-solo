@@ -27,7 +27,7 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 	log.Printf("SignInHandler called for uid: %s", uid)
-	profilePic, name, email, username, isNew, err := usecase.EnsureLogin(
+	result, err := usecase.EnsureLogin(
 		c.Request().Context(),
 		h.Pool,
 		h.AuthClient,
@@ -44,12 +44,12 @@ func (h *Handler) SignInHandler(c echo.Context) error {
 
 	resp := SignInResponse{
 		Uid:        uid,
-		Username:   username,
-		Name:       name,
-		Email:      email,
-		ProfilePic: profilePic,
-		NewAccount: isNew,
+		Username:   result.Username,
+		Name:       result.Name,
+		Email:      result.Email,
+		ProfilePic: result.ProfilePic,
+		NewAccount: result.IsNew,
 	}
-	log.Printf("User signed in: %s (new account: %v), username: %s, name: %s, email %s, profilePic: %s", uid, isNew, username, name, email, profilePic)
+	log.Printf("User signed in: %s (new account: %v), username: %s, name: %s, email %s, profilePic: %s", uid, result.IsNew, result.Username, result.Name, result.Email, result.ProfilePic)
 	return c.JSON(http.StatusOK, resp)
 }

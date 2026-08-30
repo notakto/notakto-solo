@@ -59,6 +59,7 @@ All game and payment endpoints require a Firebase `Authorization: Bearer <token>
 | POST   | `/v1/update-name`            | Yes  | Update display name                 |
 | POST   | `/v1/update-username`        | Yes  | Update username                     |
 | POST   | `/v1/profile-image/upload-auth` | Yes | Create a scoped ImageKit V2 upload token |
+| PUT    | `/v1/me/profile-image`       | Yes  | Associate an uploaded profile image |
 | GET    | `/v1/all-packages`           | Yes  | List purchasable packages           |
 | POST   | `/v1/create-charge`          | Yes  | Create a hosted payment charge      |
 | GET    | `/v1/payment-status`         | Yes  | Get the status of a payment charge  |
@@ -159,6 +160,31 @@ overwrite/publication flags, and checks into the token; clients cannot choose an
   }
 }
 ```
+
+After ImageKit returns the asset, the frontend associates it with the signed-in player:
+
+```http
+PUT /v1/me/profile-image
+Content-Type: application/json
+
+{"fileId":"abc123","filePath":"/profile-images/.../avatar-id.webp"}
+```
+
+`fileId` is required and `filePath` is optional. The backend fetches the asset from ImageKit
+and authoritatively validates its folder, path, MIME type, size, dimensions, and publication
+state before storing the verified `fileId` and `filePath`. JPEG, PNG, and WebP images up to
+5 MiB and 4096×4096 pixels are accepted. Delivery URLs are derived from
+`IMAGEKIT_URL_ENDPOINT`; full ImageKit URLs are not stored as the source of truth.
+
+A successful association returns the derived `profile_pic` URL plus the verified
+`profile_image.file_id` and `profile_image.file_path`. `/v1/sign-in` only returns the
+display-ready `profile_pic`; existing Firebase-only rows retain their legacy
+`profile_pic`.
+
+When replacing an ImageKit-backed picture, the new reference is committed before the old
+file is deleted. Old-file deletion is best-effort with a two-second timeout and never rolls
+back a successful profile update. Direct uploads abandoned before the `PUT` can remain
+orphaned because the application has no pending-upload lifecycle or background job runner.
 
 ### Leaderboard
 

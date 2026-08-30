@@ -23,11 +23,13 @@ type Querier interface {
 	GetPaymentByIdWithLock(ctx context.Context, id string) (Payment, error)
 	GetPaymentsByUid(ctx context.Context, uid string) ([]Payment, error)
 	GetPlayerById(ctx context.Context, uid string) (Player, error)
+	GetPlayerByIdWithLock(ctx context.Context, uid string) (Player, error)
 	GetWalletByPlayerId(ctx context.Context, uid string) (Wallet, error)
 	GetWalletByPlayerIdWithLock(ctx context.Context, uid string) (Wallet, error)
 	QuitGameSession(ctx context.Context, sessionID string) error
 	UpdatePaymentStatusIfNotConfirmed(ctx context.Context, arg UpdatePaymentStatusIfNotConfirmedParams) (int64, error)
 	UpdatePlayerName(ctx context.Context, arg UpdatePlayerNameParams) (Player, error)
+	UpdatePlayerProfileImage(ctx context.Context, arg UpdatePlayerProfileImageParams) (Player, error)
 	UpdatePlayerUsername(ctx context.Context, arg UpdatePlayerUsernameParams) (Player, error)
 	UpdateSessionAfterGameover(ctx context.Context, arg UpdateSessionAfterGameoverParams) error
 	UpdateSessionAfterQuitGame(ctx context.Context, sessionID string) error

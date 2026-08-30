@@ -30,11 +30,13 @@ type Payment struct {
 }
 
 type Player struct {
-	Uid        string      `json:"uid"`
-	Name       string      `json:"name"`
-	Email      string      `json:"email"`
-	ProfilePic pgtype.Text `json:"profile_pic"`
-	Username   string      `json:"username"`
+	Uid                  string      `json:"uid"`
+	Name                 string      `json:"name"`
+	Email                string      `json:"email"`
+	ProfilePic           pgtype.Text `json:"profile_pic"`
+	Username             string      `json:"username"`
+	ProfileImageFileID   pgtype.Text `json:"profile_image_file_id"`
+	ProfileImageFilePath pgtype.Text `json:"profile_image_file_path"`
 }
 
 type Session struct {

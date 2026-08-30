@@ -52,7 +52,7 @@ func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) erro
 }
 
 const getPlayerById = `-- name: GetPlayerById :one
-SELECT uid, name, email, profile_pic, username FROM Player WHERE uid = $1
+SELECT uid, name, email, profile_pic, username, profile_image_file_id, profile_image_file_path FROM Player WHERE uid = $1
 `
 
 func (q *Queries) GetPlayerById(ctx context.Context, uid string) (Player, error) {
@@ -64,12 +64,33 @@ func (q *Queries) GetPlayerById(ctx context.Context, uid string) (Player, error)
 		&i.Email,
 		&i.ProfilePic,
 		&i.Username,
+		&i.ProfileImageFileID,
+		&i.ProfileImageFilePath,
+	)
+	return i, err
+}
+
+const getPlayerByIdWithLock = `-- name: GetPlayerByIdWithLock :one
+SELECT uid, name, email, profile_pic, username, profile_image_file_id, profile_image_file_path FROM Player WHERE uid = $1 FOR UPDATE
+`
+
+func (q *Queries) GetPlayerByIdWithLock(ctx context.Context, uid string) (Player, error) {
+	row := q.db.QueryRow(ctx, getPlayerByIdWithLock, uid)
+	var i Player
+	err := row.Scan(
+		&i.Uid,
+		&i.Name,
+		&i.Email,
+		&i.ProfilePic,
+		&i.Username,
+		&i.ProfileImageFileID,
+		&i.ProfileImageFilePath,
 	)
 	return i, err
 }
 
 const updatePlayerName = `-- name: UpdatePlayerName :one
-UPDATE Player SET name = $2 WHERE uid = $1 RETURNING uid, name, email, profile_pic, username
+UPDATE Player SET name = $2 WHERE uid = $1 RETURNING uid, name, email, profile_pic, username, profile_image_file_id, profile_image_file_path
 `
 
 type UpdatePlayerNameParams struct {
@@ -86,12 +107,43 @@ func (q *Queries) UpdatePlayerName(ctx context.Context, arg UpdatePlayerNamePara
 		&i.Email,
 		&i.ProfilePic,
 		&i.Username,
+		&i.ProfileImageFileID,
+		&i.ProfileImageFilePath,
+	)
+	return i, err
+}
+
+const updatePlayerProfileImage = `-- name: UpdatePlayerProfileImage :one
+UPDATE Player
+SET profile_image_file_id = $2,
+    profile_image_file_path = $3
+WHERE uid = $1
+RETURNING uid, name, email, profile_pic, username, profile_image_file_id, profile_image_file_path
+`
+
+type UpdatePlayerProfileImageParams struct {
+	Uid                  string      `json:"uid"`
+	ProfileImageFileID   pgtype.Text `json:"profile_image_file_id"`
+	ProfileImageFilePath pgtype.Text `json:"profile_image_file_path"`
+}
+
+func (q *Queries) UpdatePlayerProfileImage(ctx context.Context, arg UpdatePlayerProfileImageParams) (Player, error) {
+	row := q.db.QueryRow(ctx, updatePlayerProfileImage, arg.Uid, arg.ProfileImageFileID, arg.ProfileImageFilePath)
+	var i Player
+	err := row.Scan(
+		&i.Uid,
+		&i.Name,
+		&i.Email,
+		&i.ProfilePic,
+		&i.Username,
+		&i.ProfileImageFileID,
+		&i.ProfileImageFilePath,
 	)
 	return i, err
 }
 
 const updatePlayerUsername = `-- name: UpdatePlayerUsername :one
-UPDATE Player SET username = $2 WHERE uid = $1 RETURNING uid, name, email, profile_pic, username
+UPDATE Player SET username = $2 WHERE uid = $1 RETURNING uid, name, email, profile_pic, username, profile_image_file_id, profile_image_file_path
 `
 
 type UpdatePlayerUsernameParams struct {
@@ -108,6 +160,8 @@ func (q *Queries) UpdatePlayerUsername(ctx context.Context, arg UpdatePlayerUser
 		&i.Email,
 		&i.ProfilePic,
 		&i.Username,
+		&i.ProfileImageFileID,
+		&i.ProfileImageFilePath,
 	)
 	return i, err
 }

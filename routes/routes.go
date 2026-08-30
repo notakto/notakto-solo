@@ -44,6 +44,7 @@ func SetupRoutes(
 	e.POST("/v1/update-name", handler.UpdateNameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 	e.POST("/v1/update-username", handler.UpdateUsernameHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 	e.POST("/v1/profile-image/upload-auth", handler.ProfileImageUploadAuthHandler, ipRateLimit, firebaseAuth, uidRateLimit)
+	e.PUT("/v1/me/profile-image", handler.UpdateProfileImageHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
 
 	// ── Payment routes ──
 	e.GET("/v1/all-packages", handler.GetAllPackagesHandler, ipRateLimit, firebaseAuth, uidRateLimit, uidLock)
