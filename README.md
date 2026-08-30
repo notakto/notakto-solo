@@ -58,6 +58,7 @@ All game and payment endpoints require a Firebase `Authorization: Bearer <token>
 | GET    | `/v1/leaderboard`            | Yes  | Get top 10 players ordered by XP    |
 | POST   | `/v1/update-name`            | Yes  | Update display name                 |
 | POST   | `/v1/update-username`        | Yes  | Update username                     |
+| POST   | `/v1/profile-image/upload-auth` | Yes | Create a scoped ImageKit V2 upload token |
 | GET    | `/v1/all-packages`           | Yes  | List purchasable packages           |
 | POST   | `/v1/create-charge`          | Yes  | Create a hosted payment charge      |
 | GET    | `/v1/payment-status`         | Yes  | Get the status of a payment charge  |
@@ -83,6 +84,9 @@ PORT=1323
 DATABASE_URL=postgres://user:password@localhost:5432/notakto
 VALKEY_URL=redis://localhost:6379
 FIREBASE_CREDENTIALS_JSON=<your Firebase service account JSON>
+IMAGEKIT_PUBLIC_KEY=<your ImageKit public key>
+IMAGEKIT_PRIVATE_KEY=<your ImageKit private key>
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/<your_imagekit_id>
 ```
 
 ### Run
@@ -121,6 +125,40 @@ Request → CORS → IP Rate Limit → Firebase Auth → UID Rate Limit → UID 
 - **UID Lock Middleware** — acquires a per-user distributed lock via Redis/Valkey to prevent concurrent mutations.
 - **Usecase Layer** — runs business logic inside serializable Postgres transactions.
 - **Store Layer** — thin wrappers over sqlc-generated queries with slow-query logging (>2s).
+
+### Profile images
+
+Profile images use a direct-to-ImageKit upload flow. The authenticated frontend first calls
+`POST /v1/profile-image/upload-auth` with the original filename:
+
+```json
+{"fileName":"avatar.webp"}
+```
+
+The response contains a five-minute ImageKit Upload V2 JWT, the V2 upload URL, and an
+`uploadPayload`. The frontend must append every returned payload field unchanged to a
+multipart form along with `file` and `token`, then send it directly to ImageKit. Upload V2
+uses raw multipart requests; the current browser SDK upload helper uses the V1 protocol and
+is not compatible with this token. The server fixes the destination to
+`/profile-images/<base64url-uid>/avatar-<uuid>.<ext>` and signs the filename, folder,
+overwrite/publication flags, and checks into the token; clients cannot choose another path.
+
+```json
+{
+  "token": "<one-time-jwt>",
+  "expiresAt": 1234567890,
+  "uploadUrl": "https://upload.imagekit.io/api/v2/files/upload",
+  "uploadPayload": {
+    "fileName": "avatar-<uuid>.webp",
+    "folder": "/profile-images/<encoded-uid>",
+    "useUniqueFileName": "false",
+    "overwriteFile": "false",
+    "isPrivateFile": "false",
+    "isPublished": "true",
+    "checks": "<signed checks expression>"
+  }
+}
+```
 
 ### Leaderboard
 

@@ -57,6 +57,21 @@ func InitEnv() error {
 			return
 		}
 
+		if err := load("IMAGEKIT_PUBLIC_KEY"); err != nil {
+			initErr = err
+			return
+		}
+
+		if err := load("IMAGEKIT_PRIVATE_KEY"); err != nil {
+			initErr = err
+			return
+		}
+
+		if err := load("IMAGEKIT_URL_ENDPOINT"); err != nil {
+			initErr = err
+			return
+		}
+
 	})
 	return initErr
 }

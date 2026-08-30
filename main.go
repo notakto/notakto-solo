@@ -19,6 +19,7 @@ import (
 
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/rakshitg600/notakto-solo/config"
+	"github.com/rakshitg600/notakto-solo/imagekitservice"
 	appMiddleware "github.com/rakshitg600/notakto-solo/middleware"
 	"github.com/rakshitg600/notakto-solo/nowpayments"
 	"github.com/rakshitg600/notakto-solo/routes"
@@ -90,6 +91,13 @@ func main() {
 	npClient := nowpayments.NewClient(nowpaymentsAPIKey)
 	ipnSecret := config.MustGetEnv("NOWPAYMENTS_IPN_SECRET")
 	keepaliveToken := config.MustGetEnv("KEEPALIVE_TOKEN")
+	if err := imagekitservice.Init(imagekitservice.Config{
+		PublicKey:   config.MustGetEnv("IMAGEKIT_PUBLIC_KEY"),
+		PrivateKey:  config.MustGetEnv("IMAGEKIT_PRIVATE_KEY"),
+		URLEndpoint: config.MustGetEnv("IMAGEKIT_URL_ENDPOINT"),
+	}); err != nil {
+		log.Fatal("failed to initialize ImageKit client:", err)
+	}
 
 	routes.SetupRoutes(e, pool, authClient, valkeyClient, npClient, ipnSecret, keepaliveToken)
 	port := config.MustGetEnv("PORT")
