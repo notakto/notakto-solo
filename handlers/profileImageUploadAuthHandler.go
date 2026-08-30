@@ -28,6 +28,7 @@ func (h *Handler) ProfileImageUploadAuthHandler(c echo.Context) error {
 	auth, err := usecase.EnsureProfileImageUploadAuth(
 		c.Request().Context(),
 		h.Pool,
+		h.ImageKitClient,
 		req.FileName,
 	)
 	if err != nil {

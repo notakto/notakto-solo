@@ -7,6 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/rakshitg600/notakto-solo/handlers"
+	"github.com/rakshitg600/notakto-solo/imagekitservice"
 	"github.com/rakshitg600/notakto-solo/middleware"
 	"github.com/rakshitg600/notakto-solo/nowpayments"
 )
@@ -17,6 +18,7 @@ func SetupRoutes(
 	authClient *auth.Client,
 	valkeyClient *redis.Client,
 	npClient *nowpayments.Client,
+	imagekitClient *imagekitservice.Client,
 	ipnSecret string,
 	keepaliveToken string,
 ) {
@@ -26,7 +28,7 @@ func SetupRoutes(
 	uidRateLimit := middleware.UIDRateLimitMiddleware(valkeyClient, 60)
 	uidLock := middleware.UIDLockMiddleware(valkeyClient)
 
-	handler := handlers.NewHandler(pool, authClient, valkeyClient, npClient, ipnSecret)
+	handler := handlers.NewHandler(pool, authClient, valkeyClient, npClient, imagekitClient, ipnSecret)
 
 	e.HEAD("/v1/health-head", handler.HealthHeadHandler)
 	e.GET("/v1/health-get", handler.HealthGetHandler)

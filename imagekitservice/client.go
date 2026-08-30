@@ -26,7 +26,6 @@ const (
 )
 
 var (
-	ErrNotInitialized       = errors.New("ImageKit service is not initialized")
 	ErrInvalidUID           = errors.New("invalid Firebase UID")
 	ErrInvalidFilename      = errors.New("invalid image filename")
 	ErrUnsupportedExtension = errors.New("unsupported image extension")
@@ -61,29 +60,32 @@ type UploadAuth struct {
 	UploadPayload UploadPayload `json:"uploadPayload"`
 }
 
-var (
+type Client struct {
 	sdk         *imagekitsdk.Client
 	publicKey   string
 	privateKey  string
 	urlEndpoint string
-	now         = time.Now
-	newID       = uuid.NewString
-)
-
-// Init initializes the ImageKit service.
-func Init(cfg Config) error {
-	imagekit := imagekitsdk.NewClient(option.WithPrivateKey(cfg.PrivateKey))
-	sdk = &imagekit
-	publicKey = cfg.PublicKey
-	privateKey = cfg.PrivateKey
-	urlEndpoint = strings.TrimRight(cfg.URLEndpoint, "/")
-	return nil
 }
 
-func GenerateUploadAuth(uid, originalFilename string) (UploadAuth, error) {
-	if sdk == nil {
-		return UploadAuth{}, ErrNotInitialized
+// NewClient creates an initialized ImageKit client.
+func NewClient(cfg Config) (*Client, error) {
+	if strings.TrimSpace(cfg.PublicKey) == "" {
+		return nil, errors.New("ImageKit public key is required")
 	}
+	if strings.TrimSpace(cfg.PrivateKey) == "" {
+		return nil, errors.New("ImageKit private key is required")
+	}
+
+	imagekit := imagekitsdk.NewClient(option.WithPrivateKey(cfg.PrivateKey))
+	return &Client{
+		sdk:         &imagekit,
+		publicKey:   cfg.PublicKey,
+		privateKey:  cfg.PrivateKey,
+		urlEndpoint: strings.TrimRight(cfg.URLEndpoint, "/"),
+	}, nil
+}
+
+func (c *Client) GenerateUploadAuth(uid, originalFilename string) (UploadAuth, error) {
 	if uid == "" || strings.TrimSpace(uid) == "" || !utf8.ValidString(uid) {
 		return UploadAuth{}, ErrInvalidUID
 	}
@@ -111,8 +113,8 @@ func GenerateUploadAuth(uid, originalFilename string) (UploadAuth, error) {
 		return UploadAuth{}, ErrUnsupportedExtension
 	}
 
-	fileName := "avatar-" + newID() + extension
-	issuedAt := now().UTC().Unix()
+	fileName := "avatar-" + uuid.NewString() + extension
+	issuedAt := time.Now().UTC().Unix()
 	expiresAt := issuedAt + int64(UploadAuthTTL/time.Second)
 	claims := jwt.MapClaims{
 		"fileName":          fileName,
@@ -126,8 +128,8 @@ func GenerateUploadAuth(uid, originalFilename string) (UploadAuth, error) {
 		"exp":               expiresAt,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	token.Header["kid"] = publicKey
-	signed, err := token.SignedString([]byte(privateKey))
+	token.Header["kid"] = c.publicKey
+	signed, err := token.SignedString([]byte(c.privateKey))
 	if err != nil {
 		return UploadAuth{}, fmt.Errorf("sign ImageKit upload token: %w", err)
 	}

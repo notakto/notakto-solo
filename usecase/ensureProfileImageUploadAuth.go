@@ -21,6 +21,7 @@ var (
 func EnsureProfileImageUploadAuth(
 	ctx context.Context,
 	pool *pgxpool.Pool,
+	imagekitClient *imagekitservice.Client,
 	originalFilename string,
 ) (imagekitservice.UploadAuth, error) {
 	uid, ok := contextkey.UIDFromContext(ctx)
@@ -34,7 +35,7 @@ func EnsureProfileImageUploadAuth(
 		return imagekitservice.UploadAuth{}, fmt.Errorf("look up player profile: %w", err)
 	}
 
-	auth, err := imagekitservice.GenerateUploadAuth(uid, originalFilename)
+	auth, err := imagekitClient.GenerateUploadAuth(uid, originalFilename)
 	if err != nil {
 		if errors.Is(err, imagekitservice.ErrInvalidFilename) ||
 			errors.Is(err, imagekitservice.ErrUnsupportedExtension) {
