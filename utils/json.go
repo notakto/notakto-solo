@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -12,9 +13,10 @@ import (
 const defaultJSONBodyLimit = 2 * 1024 * 1024 // 2Mb max json body size limit
 
 type DecodeStrictJSONParams struct {
-	Context  echo.Context
-	Dest     any
-	MaxBytes int64
+	Context        echo.Context
+	Dest           any
+	MaxBytes       int64
+	AllowEmptyBody bool
 }
 
 func DecodeStrictJSON(params DecodeStrictJSONParams) error {
@@ -26,9 +28,12 @@ func DecodeStrictJSON(params DecodeStrictJSONParams) error {
 	req := params.Context.Request()
 	req.Body = http.MaxBytesReader(params.Context.Response().Writer, req.Body, maxBytes)
 
+	var raw json.RawMessage
 	decoder := json.NewDecoder(req.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(params.Dest); err != nil {
+	if err := decoder.Decode(&raw); err != nil {
+		if params.AllowEmptyBody && errors.Is(err, io.EOF) {
+			return nil
+		}
 		return err
 	}
 
@@ -40,5 +45,16 @@ func DecodeStrictJSON(params DecodeStrictJSONParams) error {
 		return err
 	}
 
-	return nil
+	tokenDecoder := json.NewDecoder(bytes.NewReader(raw))
+	token, err := tokenDecoder.Token()
+	if err != nil {
+		return err
+	}
+	if delimiter, ok := token.(json.Delim); !ok || delimiter != '{' {
+		return errors.New("request body must contain a JSON object")
+	}
+
+	strictDecoder := json.NewDecoder(bytes.NewReader(raw))
+	strictDecoder.DisallowUnknownFields()
+	return strictDecoder.Decode(params.Dest)
 }

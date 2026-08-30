@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"io"
 	"log"
 	"net/http"
 	"time"
@@ -38,10 +37,8 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 	}
 	log.Printf("CreateGameHandler called for uid: %s", uid)
 	var req CreateGameRequest
-	if err := utils.DecodeStrictJSON(utils.DecodeStrictJSONParams{Context: c, Dest: &req}); err != nil {
-		if err != io.EOF {
-			return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
-		}
+	if err := utils.DecodeStrictJSON(utils.DecodeStrictJSONParams{Context: c, Dest: &req, AllowEmptyBody: true}); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 
 	// ✅ Apply defaults if fields are zero or invalid
