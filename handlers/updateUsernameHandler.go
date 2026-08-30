@@ -8,6 +8,7 @@ import (
 
 	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
+	"github.com/rakshitg600/notakto-solo/utils"
 )
 
 type UpdateUsernameRequest struct {
@@ -26,7 +27,7 @@ func (h *Handler) UpdateUsernameHandler(c echo.Context) error {
 	log.Printf("UpdateUsernameHandler called for uid: %s", uid)
 
 	var req UpdateUsernameRequest
-	if err := c.Bind(&req); err != nil {
+	if err := utils.DecodeStrictJSON(utils.DecodeStrictJSONParams{Context: c, Dest: &req}); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 	if req.Username == "" {

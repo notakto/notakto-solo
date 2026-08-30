@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
+	"github.com/rakshitg600/notakto-solo/utils"
 )
 
 type CreateGameRequest struct {
@@ -35,10 +37,11 @@ func (h *Handler) CreateGameHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 	log.Printf("CreateGameHandler called for uid: %s", uid)
-	// ✅ Try binding the body
 	var req CreateGameRequest
-	if err := c.Bind(&req); err != nil {
-		req = CreateGameRequest{} // reset if malformed JSON
+	if err := utils.DecodeStrictJSON(utils.DecodeStrictJSONParams{Context: c, Dest: &req}); err != nil {
+		if err != io.EOF {
+			return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
+		}
 	}
 
 	// ✅ Apply defaults if fields are zero or invalid

@@ -8,6 +8,7 @@ import (
 
 	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
+	"github.com/rakshitg600/notakto-solo/utils"
 )
 
 type CreateChargeRequest struct {
@@ -26,7 +27,7 @@ func (h *Handler) CreateChargeHandler(c echo.Context) error {
 	}
 
 	var req CreateChargeRequest
-	if err := c.Bind(&req); err != nil {
+	if err := utils.DecodeStrictJSON(utils.DecodeStrictJSONParams{Context: c, Dest: &req}); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 	if req.PackageID == "" {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
+	"github.com/rakshitg600/notakto-solo/utils"
 )
 
 type MakeMoveRequest struct {
@@ -32,9 +33,8 @@ func (h *Handler) MakeMoveHandler(c echo.Context) error {
 	}
 
 	log.Printf("MakeMoveHandler called for uid: %s", uid)
-	// ✅ Try binding the body
 	var req MakeMoveRequest
-	if err := c.Bind(&req); err != nil {
+	if err := utils.DecodeStrictJSON(utils.DecodeStrictJSONParams{Context: c, Dest: &req}); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 	boards, isAiMove, gameOver, winner, coinsRewarded, xpRewarded, err := usecase.EnsureMakeMove(

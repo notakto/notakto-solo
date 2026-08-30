@@ -7,6 +7,7 @@ import (
 
 	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
+	"github.com/rakshitg600/notakto-solo/utils"
 )
 
 type UpdatePlayerNameRequest struct {
@@ -19,9 +20,8 @@ func (h *Handler) UpdateNameHandler(c echo.Context) error {
 		return echo.NewHTTPError(401, "unauthorized: missing or invalid uid")
 	}
 	log.Printf("UpdateNameHandler called for uid: %s", uid)
-	// ✅ Try binding the body
 	var req UpdatePlayerNameRequest
-	if err := c.Bind(&req); err != nil {
+	if err := utils.DecodeStrictJSON(utils.DecodeStrictJSONParams{Context: c, Dest: &req}); err != nil {
 		return echo.NewHTTPError(400, "invalid request body")
 	}
 	if req.Name == "" {

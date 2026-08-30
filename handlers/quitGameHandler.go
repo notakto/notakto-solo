@@ -8,6 +8,7 @@ import (
 
 	"github.com/rakshitg600/notakto-solo/contextkey"
 	"github.com/rakshitg600/notakto-solo/usecase"
+	"github.com/rakshitg600/notakto-solo/utils"
 )
 
 type QuitGameRequest struct {
@@ -24,9 +25,8 @@ func (h *Handler) QuitGameHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized: missing or invalid uid")
 	}
 	log.Printf("QuitGameHandler called for uid: %s", uid)
-	// ✅ Try binding the body
 	var req QuitGameRequest
-	if err := c.Bind(&req); err != nil {
+	if err := utils.DecodeStrictJSON(utils.DecodeStrictJSONParams{Context: c, Dest: &req}); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 	success, err := usecase.EnsureQuitGame(c.Request().Context(), h.Pool, req.SessionID)
