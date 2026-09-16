@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strings"
 
@@ -26,7 +25,6 @@ func FirebaseAuthMiddleware(authClient *auth.Client) echo.MiddlewareFunc {
 
 			ctx := c.Request().Context()
 			idToken := authHeader[len("Bearer "):]
-			log.Printf("Firebase token: %s", idToken)
 			uid, err := usecase.VerifyFirebaseToken(ctx, authClient, idToken)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
