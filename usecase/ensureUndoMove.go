@@ -74,10 +74,7 @@ func EnsureUndoMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	if err != nil {
 		return nil, nil, err
 	}
-	if wallet.Coins.Valid == false || wallet.Xp.Valid == false {
-		return nil, nil, errors.New("invalid wallet response from db")
-	}
-	if wallet.Coins.Int32 < undoMoveCost {
+	if wallet.Coins < undoMoveCost {
 		return nil, nil, errors.New("insufficient coins to undo move")
 	}
 	// STEP 5: Verify there are moves to undo

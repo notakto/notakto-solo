@@ -186,13 +186,14 @@ stores the ImageKit `fileId` and `filePath`, builds the public ImageKit URL, and
 
 ### Leaderboard
 
-`GET /v1/leaderboard` returns up to 10 players with non-null XP, ranked by competition ranking (`1, 1, 3`). Ties are ordered alphabetically by username and only `rank`, `username`, and `xp` are exposed.
+`GET /v1/leaderboard` returns the top 10 players ranked by competition ranking (`1, 1, 3`), plus the authenticated player's standing in `current_user`. Only `rank`, `username`, and `xp` are exposed.
 
 ```json
 {
   "leaderboard": [
     {"rank": 1, "username": "player_one", "xp": 1200}
-  ]
+  ],
+  "current_user": {"rank": 42, "username": "current_player", "xp": 300}
 }
 ```
 

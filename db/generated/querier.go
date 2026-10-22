@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CheckUsernameExists(ctx context.Context, arg CheckUsernameExistsParams) (bool, error)
+	CountWalletsWithMoreXP(ctx context.Context, xp int32) (int64, error)
 	CreateInitialSessionState(ctx context.Context, arg CreateInitialSessionStateParams) error
 	CreatePayment(ctx context.Context, arg CreatePaymentParams) error
 	CreatePlayer(ctx context.Context, arg CreatePlayerParams) error

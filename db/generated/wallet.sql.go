@@ -9,6 +9,19 @@ import (
 	"context"
 )
 
+const countWalletsWithMoreXP = `-- name: CountWalletsWithMoreXP :one
+SELECT COUNT(*)
+FROM wallet
+WHERE xp > $1
+`
+
+func (q *Queries) CountWalletsWithMoreXP(ctx context.Context, xp int32) (int64, error) {
+	row := q.db.QueryRow(ctx, countWalletsWithMoreXP, xp)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createWallet = `-- name: CreateWallet :exec
 INSERT INTO wallet ( uid, coins, xp)
 VALUES ($1, $2, $3)
@@ -27,26 +40,16 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) erro
 
 const getLeaderboard = `-- name: GetLeaderboard :many
 SELECT
-    ranked.rank::integer AS rank,
-    ranked.username,
-    ranked.xp::integer AS xp
-FROM (
-    SELECT
-        RANK() OVER (ORDER BY w.xp DESC) AS rank,
-        p.username,
-        w.xp
-    FROM wallet w
-    JOIN player p ON p.uid = w.uid
-    WHERE w.xp IS NOT NULL
-) ranked
-ORDER BY ranked.xp DESC, ranked.username ASC
+    uid,
+    xp
+FROM wallet
+ORDER BY xp DESC, uid ASC
 LIMIT 10
 `
 
 type GetLeaderboardRow struct {
-	Rank     int32  `json:"rank"`
-	Username string `json:"username"`
-	Xp       int32  `json:"xp"`
+	Uid string `json:"uid"`
+	Xp  int32  `json:"xp"`
 }
 
 func (q *Queries) GetLeaderboard(ctx context.Context) ([]GetLeaderboardRow, error) {
@@ -58,7 +61,7 @@ func (q *Queries) GetLeaderboard(ctx context.Context) ([]GetLeaderboardRow, erro
 	items := []GetLeaderboardRow{}
 	for rows.Next() {
 		var i GetLeaderboardRow
-		if err := rows.Scan(&i.Rank, &i.Username, &i.Xp); err != nil {
+		if err := rows.Scan(&i.Uid, &i.Xp); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
