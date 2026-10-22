@@ -6,9 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/rakshitg600/notakto-solo/db/generated"
 	"github.com/rakshitg600/notakto-solo/contextkey"
+	db "github.com/rakshitg600/notakto-solo/db/generated"
 )
 
 func UpdateWalletXpReward(ctx context.Context, q *db.Queries, xpReward int32) (err error) {
@@ -19,7 +18,7 @@ func UpdateWalletXpReward(ctx context.Context, q *db.Queries, xpReward int32) (e
 	start := time.Now()
 	err = q.UpdateWalletXpReward(ctx, db.UpdateWalletXpRewardParams{
 		Uid: uid,
-		Xp:  pgtype.Int4{Int32: xpReward, Valid: true},
+		Xp:  xpReward,
 	})
 	if time.Since(start) > 2*time.Second {
 		//logging slow DB calls

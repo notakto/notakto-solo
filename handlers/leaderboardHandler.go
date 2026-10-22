@@ -18,6 +18,7 @@ type LeaderboardEntryResponse struct {
 
 type LeaderboardResponse struct {
 	Leaderboard []LeaderboardEntryResponse `json:"leaderboard"`
+	CurrentUser LeaderboardEntryResponse   `json:"current_user"`
 }
 
 func (h *Handler) LeaderboardHandler(c echo.Context) error {
@@ -35,9 +36,14 @@ func (h *Handler) LeaderboardHandler(c echo.Context) error {
 	}
 
 	resp := LeaderboardResponse{
-		Leaderboard: make([]LeaderboardEntryResponse, 0, len(leaderboard)),
+		Leaderboard: make([]LeaderboardEntryResponse, 0, len(leaderboard.Leaderboard)),
+		CurrentUser: LeaderboardEntryResponse{
+			Rank:     leaderboard.CurrentUser.Rank,
+			Username: leaderboard.CurrentUser.Username,
+			XP:       leaderboard.CurrentUser.XP,
+		},
 	}
-	for _, entry := range leaderboard {
+	for _, entry := range leaderboard.Leaderboard {
 		resp.Leaderboard = append(resp.Leaderboard, LeaderboardEntryResponse{
 			Rank:     entry.Rank,
 			Username: entry.Username,

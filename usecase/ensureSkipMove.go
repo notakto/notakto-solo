@@ -79,10 +79,7 @@ func EnsureSkipMove(ctx context.Context, pool *pgxpool.Pool, sessionID string) (
 	if err != nil {
 		return nil, nil, false, false, 0, 0, err
 	}
-	if wallet.Coins.Valid == false || wallet.Xp.Valid == false {
-		return nil, nil, false, false, 0, 0, errors.New("invalid wallet response from db")
-	}
-	if wallet.Coins.Int32 < skipMoveCost {
+	if wallet.Coins < skipMoveCost {
 		return nil, nil, false, false, 0, 0, errors.New("insufficient coins to skip move")
 	}
 
