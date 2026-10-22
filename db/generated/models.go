@@ -64,7 +64,7 @@ type Sessionstate struct {
 }
 
 type Wallet struct {
-	Uid   string      `json:"uid"`
-	Coins pgtype.Int4 `json:"coins"`
-	Xp    pgtype.Int4 `json:"xp"`
+	Uid   string `json:"uid"`
+	Coins int32  `json:"coins"`
+	Xp    int32  `json:"xp"`
 }

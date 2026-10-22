@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createWallet = `-- name: CreateWallet :exec
@@ -17,9 +15,9 @@ VALUES ($1, $2, $3)
 `
 
 type CreateWalletParams struct {
-	Uid   string      `json:"uid"`
-	Coins pgtype.Int4 `json:"coins"`
-	Xp    pgtype.Int4 `json:"xp"`
+	Uid   string `json:"uid"`
+	Coins int32  `json:"coins"`
+	Xp    int32  `json:"xp"`
 }
 
 func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) error {
@@ -112,9 +110,9 @@ WHERE uid = $1
 `
 
 type UpdateWalletCoinsAndXpRewardParams struct {
-	Uid   string      `json:"uid"`
-	Coins pgtype.Int4 `json:"coins"`
-	Xp    pgtype.Int4 `json:"xp"`
+	Uid   string `json:"uid"`
+	Coins int32  `json:"coins"`
+	Xp    int32  `json:"xp"`
 }
 
 func (q *Queries) UpdateWalletCoinsAndXpReward(ctx context.Context, arg UpdateWalletCoinsAndXpRewardParams) error {
@@ -129,8 +127,8 @@ WHERE uid = $1
 `
 
 type UpdateWalletReduceCoinsParams struct {
-	Uid   string      `json:"uid"`
-	Coins pgtype.Int4 `json:"coins"`
+	Uid   string `json:"uid"`
+	Coins int32  `json:"coins"`
 }
 
 func (q *Queries) UpdateWalletReduceCoins(ctx context.Context, arg UpdateWalletReduceCoinsParams) error {
@@ -145,8 +143,8 @@ WHERE uid = $1
 `
 
 type UpdateWalletXpRewardParams struct {
-	Uid string      `json:"uid"`
-	Xp  pgtype.Int4 `json:"xp"`
+	Uid string `json:"uid"`
+	Xp  int32  `json:"xp"`
 }
 
 func (q *Queries) UpdateWalletXpReward(ctx context.Context, arg UpdateWalletXpRewardParams) error {
