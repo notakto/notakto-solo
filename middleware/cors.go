@@ -12,8 +12,8 @@ func CORSMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		origin := c.Request().Header.Get("Origin")
 
 		if origin == "http://localhost:3000" ||
-			origin == "https://notakto.xyz" ||
-			origin == "https://www.notakto.xyz" ||
+			origin == "https://notakto.online" ||
+			origin == "https://www.notakto.online" ||
 			origin == "https://notakto.vercel.app" ||
 			origin == "https://notakto-staging.netlify.app" ||
 			(strings.HasSuffix(origin, "--notakto-staging.netlify.app") &&
